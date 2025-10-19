@@ -6,6 +6,9 @@ import {
   RegisterFormComponent,
   AuthFormLayout,
 } from "../components/AuthForms";
+import { mockSignIn, mockSignUp } from "../services/mockApi";
+import { useAuth } from "../context/AuthContext";
+
 function AuthScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -25,20 +28,38 @@ function AuthScreen() {
     finished: "scale-[30] opacity-0 pointer-events-none ease-expander",
   };
 
+  const { user } = useAuth();
+
   useEffect(() => {
+    console.log("AuthScreen: user state changed to", user);
     const timers = [];
     timers.push(setTimeout(() => setIntroAnimationState("shrinking"), 200));
     timers.push(setTimeout(() => setIntroAnimationState("small-circle"), 1200));
     timers.push(setTimeout(() => setIntroAnimationState("expanding"), 1700));
     timers.push(setTimeout(() => setIntroAnimationState("finished"), 2700));
     return () => timers.forEach(clearTimeout);
-  }, []);
+  }, [user]); // Add user to dependency array to log changes
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError("Authentication is currently disabled.");
-    setAuthLoading(false); // Always set to false as no actual auth is happening
+    setError("");
+    setAuthLoading(true);
+    try {
+      if (isRegisterForm) {
+        await mockSignUp(email, password, petName);
+      } else {
+        await mockSignIn(email, password);
+      }
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setAuthLoading(false);
+    }
   };
+
+  if (user) {
+    return <Navigate to="/home" />;
+  }
 
   return (
     <div className="min-h-screen bg-[#FFE7CC] flex items-center justify-center p-4 relative overflow-hidden">

@@ -1,5 +1,6 @@
 import React from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { AuthProvider } from "./context/AuthContext"; // Import AuthProvider
 import { DataProvider } from "./context/DataContext";
 import Layout from "./components/Layout";
 import AuthScreen from "./pages/AuthScreen";
@@ -79,25 +80,27 @@ if (typeof document !== "undefined" && !document.getElementById("custom-3d-style
 function App() {
   return (
     <Router>
-      <Routes>
-        <Route path="/" element={<AuthScreen />} />
-        <Route
-          path="*"
-          element={
-            <DataProvider>
-              <Layout>
-                <Routes>
-                  <Route path="/home" element={<HomePage />} />
-                  <Route path="/map" element={<MapView />} />
-                  <Route path="/add" element={<AddPostPage />} />
-                  <Route path="/chat" element={<ChatPage />} />
-                  <Route path="/settings" element={<SettingsPage />} />
-                </Routes>
-              </Layout>
-            </DataProvider>
-          }
-        />
-      </Routes>
+      <AuthProvider> {/* Wrap the entire application with AuthProvider */}
+        <Routes>
+          <Route path="/" element={<AuthScreen />} />
+          <Route
+            path="*"
+            element={
+              <DataProvider>
+                <Layout>
+                  <Routes>
+                    <Route path="/home" element={<HomePage />} />
+                    <Route path="/map" element={<MapView />} />
+                    <Route path="/add" element={<AddPostPage />} />
+                    <Route path="/chat" element={<ChatPage />} />
+                    <Route path="/settings" element={<SettingsPage />} />
+                  </Routes>
+                </Layout>
+              </DataProvider>
+            }
+          />
+        </Routes>
+      </AuthProvider>
     </Router>
   );
 }

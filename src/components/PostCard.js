@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Heart, MessageCircle, Trash2 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useData } from "../context/DataContext";
-import { deletePost, updatePostLikes } from "../firebase/api";
+import { deletePost, updatePostLikes } from "../services/mockApi";
 
 function PostCard({ post }) {
   const { user } = useAuth();
