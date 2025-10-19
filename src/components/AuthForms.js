@@ -119,7 +119,7 @@ export function AuthFormLayout({ children, isRegisterLayout, onSwitch }) {
         <h1 className="text-4xl font-bold text-gray-800 mb-2">
           {isRegisterLayout ? "Sign Up" : "Sign In"}
         </h1>
-        <p className="text-gray-700 font-medium">Welcome to PawSnap 🐾</p>
+        <p className="text-gray-700 font-medium">Welcome to PetSnap 🐾</p>
       </div>
 
       {/* แสดงฟอร์ม Login หรือ Register ที่ส่งเข้ามา */}
@@ -128,8 +128,8 @@ export function AuthFormLayout({ children, isRegisterLayout, onSwitch }) {
       {/*Switch regis and login button*/}
       <div className="mt-6 text-center">
         <button
-          type="button" // สำคัญ: ใส่ type="button" เพื่อไม่ให้ submit form หลัก
-          onClick={onSwitch} // เรียกใช้ function ที่ส่งมาจาก AuthScreen
+          type="button" 
+          onClick={onSwitch} 
           className="text-[#A4805C] hover:text-[#836546] font-medium"
         >
           {isRegisterLayout

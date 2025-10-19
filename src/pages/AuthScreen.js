@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { Navigate } from "react-router-dom";
 import clsx from "clsx";
-import { LoginFormComponent, RegisterFormComponent, AuthFormLayout } from "../components/AuthForms";
-import { signIn, signUp } from "../firebase/api";
-import { useAuth } from "../context/AuthContext";
-
+import {
+  LoginFormComponent,
+  RegisterFormComponent,
+  AuthFormLayout,
+} from "../components/AuthForms";
 function AuthScreen() {
-  const { user, loading } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [petName, setPetName] = useState("");
@@ -36,39 +36,9 @@ function AuthScreen() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError("");
-    setAuthLoading(true);
-    const formTypeIsRegister = isRegisterForm;
-
-    try {
-      if (!formTypeIsRegister) {
-        await signIn(email, password);
-      } else {
-        await signUp(email, password, petName);
-      }
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setAuthLoading(false);
-    }
+    setError("Authentication is currently disabled.");
+    setAuthLoading(false); // Always set to false as no actual auth is happening
   };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-[#FFE7CC] flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-24 h-24 rounded-full bg-[#E2B887] mb-4 animate-pulse shadow-xl mx-auto" />
-          <div className="text-2xl font-bold text-[#8B6F47]">
-            Loading PawSnap...
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (user) {
-    return <Navigate to="/" replace />;
-  }
 
   return (
     <div className="min-h-screen bg-[#FFE7CC] flex items-center justify-center p-4 relative overflow-hidden">

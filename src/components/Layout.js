@@ -1,10 +1,8 @@
 import React from "react";
 import { Camera, Search, Home, MapPin, Plus, MessageCircle, Settings } from "lucide-react";
 import { NavLink } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
-import { useData } from "../context/DataContext";
 
-function NavButton({ icon: Icon, to, isCenter, badge }) {
+function NavButton({ icon: Icon, to, isCenter }) {
   return (
     <NavLink
       to={to}
@@ -19,19 +17,11 @@ function NavButton({ icon: Icon, to, isCenter, badge }) {
       }
     >
       <Icon className="w-6 h-6" />
-      {badge && (
-        <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
-          {badge}
-        </span>
-      )}
     </NavLink>
   );
 }
 
 function Layout({ children }) {
-  const { userProfile } = useAuth();
-  const { friendRequests } = useData();
-
   return (
     <div className="min-h-screen bg-[#FFE7CC] flex flex-col">
       {/* Top Header */}
@@ -53,19 +43,6 @@ function Layout({ children }) {
                 className="pl-10 pr-4 py-2 bg-white/60 border-2 border-[#E2B887]/30 rounded-full text-sm focus:outline-none focus:border-[#E2B887] transition"
               />
             </div>
-
-            {userProfile && (
-              <div className="flex items-center space-x-2">
-                <img
-                  src={userProfile.photoURL}
-                  alt={userProfile.petName}
-                  className="w-8 h-8 rounded-full border-2 border-[#E2B887] object-cover"
-                />
-                <span className="text-sm font-medium text-[#8B6F47]">
-                  {userProfile.petName}
-                </span>
-              </div>
-            )}
           </div>
         </div>
       </header>
@@ -86,11 +63,7 @@ function Layout({ children }) {
           <NavButton icon={MapPin} to="/map" />
           <NavButton icon={Plus} to="/add" isCenter />
           <NavButton icon={MessageCircle} to="/chat" />
-          <NavButton
-            icon={Settings}
-            to="/settings"
-            badge={friendRequests.length > 0 ? friendRequests.length : null}
-          />
+          <NavButton icon={Settings} to="/settings" />
         </div>
       </nav>
     </div>

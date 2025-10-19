@@ -1,6 +1,5 @@
 import React from "react";
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
-import { AuthProvider, useAuth } from "./context/AuthContext";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { DataProvider } from "./context/DataContext";
 import Layout from "./components/Layout";
 import AuthScreen from "./pages/AuthScreen";
@@ -77,55 +76,28 @@ if (typeof document !== "undefined" && !document.getElementById("custom-3d-style
   document.head.appendChild(style);
 }
 
-function ProtectedRoute({ children }) {
-  const { user, loading } = useAuth();
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-[#FFE7CC] flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-24 h-24 rounded-full bg-[#E2B887] mb-4 animate-pulse shadow-xl mx-auto" />
-          <div className="text-2xl font-bold text-[#8B6F47]">
-            Loading PawSnap...
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (!user) {
-    return <Navigate to="/auth" replace />;
-  }
-
-  return children;
-}
-
 function App() {
   return (
     <Router>
-      <AuthProvider>
-        <Routes>
-          <Route path="/auth" element={<AuthScreen />} />
-          <Route
-            path="*"
-            element={
-              <ProtectedRoute>
-                <DataProvider>
-                  <Layout>
-                    <Routes>
-                      <Route path="/" element={<HomePage />} />
-                      <Route path="/map" element={<MapView />} />
-                      <Route path="/add" element={<AddPostPage />} />
-                      <Route path="/chat" element={<ChatPage />} />
-                      <Route path="/settings" element={<SettingsPage />} />
-                    </Routes>
-                  </Layout>
-                </DataProvider>
-              </ProtectedRoute>
-            }
-          />
-        </Routes>
-      </AuthProvider>
+      <Routes>
+        <Route path="/" element={<AuthScreen />} />
+        <Route
+          path="*"
+          element={
+            <DataProvider>
+              <Layout>
+                <Routes>
+                  <Route path="/home" element={<HomePage />} />
+                  <Route path="/map" element={<MapView />} />
+                  <Route path="/add" element={<AddPostPage />} />
+                  <Route path="/chat" element={<ChatPage />} />
+                  <Route path="/settings" element={<SettingsPage />} />
+                </Routes>
+              </Layout>
+            </DataProvider>
+          }
+        />
+      </Routes>
     </Router>
   );
 }
