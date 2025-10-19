@@ -1,0 +1,96 @@
+import React, { useState } from "react";
+import { Heart, MessageCircle, Trash2 } from "lucide-react";
+import { useAuth } from "../context/AuthContext";
+import { useData } from "../context/DataContext";
+import { deletePost, updatePostLikes } from "../firebase/api";
+
+function PostCard({ post }) {
+  const { user } = useAuth();
+  const { loadPosts } = useData();
+  const [liked, setLiked] = useState(
+    post.likedBy?.includes(user.uid) || false
+  );
+  const [likes, setLikes] = useState(post.likes || 0);
+
+  const handleLike = async () => {
+    try {
+      await updatePostLikes(post.id, user.uid, liked);
+      setLikes((prev) => (liked ? prev - 1 : prev + 1));
+      setLiked(!liked);
+    } catch (error) {
+      console.error("Error liking post:", error);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (window.confirm("Are you sure you want to delete this post?")) {
+      try {
+        await deletePost(post.id);
+        loadPosts(); // Refresh posts after deletion
+      } catch (error) {
+        console.error("Error deleting post:", error);
+      }
+    }
+  };
+
+  return (
+    <div className="bg-white rounded-3xl shadow-lg overflow-hidden">
+      <div className="p-4 flex items-center justify-between">
+        <div className="flex items-center space-x-3">
+          <img
+            src={post.userPhoto}
+            alt={post.petName}
+            className="w-12 h-12 rounded-full border-2 border-[#E2B887] object-cover"
+          />
+          <div>
+            <p className="font-bold text-[#8B6F47]">{post.petName}</p>
+            <p className="text-sm text-[#8B6F47]/60">
+              {post.createdAt?.toDate
+                ? new Date(post.createdAt.toDate()).toLocaleDateString()
+                : "Just now"}
+            </p>
+          </div>
+        </div>
+        {post.userId === user.uid && (
+          <button
+            onClick={handleDelete}
+            className="p-2 text-red-500 hover:bg-red-50 rounded-xl"
+          >
+            <Trash2 className="w-5 h-5" />
+          </button>
+        )}
+      </div>
+
+      <img
+        src={post.imageUrl}
+        alt="Pet post"
+        className="w-full h-96 object-cover"
+      />
+
+      <div className="p-4 space-y-3">
+        <div className="flex items-center space-x-4">
+          <button
+            onClick={handleLike}
+            className={`flex items-center space-x-2 transition ${
+              liked ? "text-red-500" : "text-[#8B6F47] hover:text-red-500"
+            }`}
+          >
+            <Heart className={`w-7 h-7 ${liked ? "fill-current" : ""}`} />
+            <span className="font-semibold">{likes}</span>
+          </button>
+          <button className="flex items-center space-x-2 text-[#8B6F47] hover:text-[#E2B887]">
+            <MessageCircle className="w-7 h-7" />
+          </button>
+        </div>
+        <div>
+          <p className="text-[#8B6F47]">
+            <span className="font-bold mr-2">{post.petName}</span>
+            {post.caption}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default PostCard;

@@ -1,24 +1,132 @@
-import logo from './logo.svg';
-import './App.css';
+import React from "react";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import { AuthProvider, useAuth } from "./context/AuthContext";
+import { DataProvider } from "./context/DataContext";
+import Layout from "./components/Layout";
+import AuthScreen from "./pages/AuthScreen";
+import HomePage from "./pages/HomePage";
+import MapView from "./pages/MapView";
+import AddPostPage from "./pages/AddPostPage";
+import ChatPage from "./pages/ChatPage";
+import SettingsPage from "./pages/SettingsPage";
+
+// 👇 *** อัปเดต customStyles ให้รองรับ 3D Transform และ Easing ***
+const customStyles = `
+
+  .front-face, .back-face {
+    backface-visibility: hidden;
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+  }
+
+  /* when hidden, disable pointer events */
+  .card-flipped .front-face {
+    opacity: 0;
+    pointer-events: none;  /* 🧩 KEY FIX */
+  }
+
+  .card-flipped .back-face {
+    opacity: 1;
+    pointer-events: auto;  /* 🧩 KEY FIX */
+  }
+
+
+  /* --- 3D Flip Utilities --- */
+    .perspective-1000 {
+      perspective: 1000px;
+    }
+    .transform-style-preserve-3d {
+      transform-style: preserve-3d;
+      transform: translateZ(0);
+    }
+    .backface-hidden {
+      backface-visibility: hidden;
+    }
+    .rotate-y-180 {
+      transform: rotateY(180deg);
+    }
+    
+    .front-face {
+      transform: rotateY(0deg) translateZ(1px);
+      opacity: 1;
+      transition: all 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    }
+    
+    .back-face {
+      transform: rotateY(180deg) translateZ(1px);
+      opacity: 0;
+      transition: all 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    }
+    
+    .card-flipped .front-face {
+      opacity: 0;
+    }
+    
+    .card-flipped .back-face {
+      opacity: 1;
+    }
+  `;
+// ✅ Inject custom 3D styles once into the document head
+if (typeof document !== "undefined" && !document.getElementById("custom-3d-styles")) {
+  const style = document.createElement("style");
+  style.id = "custom-3d-styles";
+  style.textContent = customStyles;
+  document.head.appendChild(style);
+}
+
+function ProtectedRoute({ children }) {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#FFE7CC] flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-24 h-24 rounded-full bg-[#E2B887] mb-4 animate-pulse shadow-xl mx-auto" />
+          <div className="text-2xl font-bold text-[#8B6F47]">
+            Loading PawSnap...
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Navigate to="/auth" replace />;
+  }
+
+  return children;
+}
 
 function App() {
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+    <Router>
+      <AuthProvider>
+        <Routes>
+          <Route path="/auth" element={<AuthScreen />} />
+          <Route
+            path="*"
+            element={
+              <ProtectedRoute>
+                <DataProvider>
+                  <Layout>
+                    <Routes>
+                      <Route path="/" element={<HomePage />} />
+                      <Route path="/map" element={<MapView />} />
+                      <Route path="/add" element={<AddPostPage />} />
+                      <Route path="/chat" element={<ChatPage />} />
+                      <Route path="/settings" element={<SettingsPage />} />
+                    </Routes>
+                  </Layout>
+                </DataProvider>
+              </ProtectedRoute>
+            }
+          />
+        </Routes>
+      </AuthProvider>
+    </Router>
   );
 }
 
