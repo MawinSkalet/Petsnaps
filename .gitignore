@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # dependencies
 /node_modules
 /.pnp
@@ -21,3 +22,12 @@
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+=======
+REACT_APP_FIREBASE_API_KEY=AIzaSyCkqHjg-Q6wxvLojcJuwhXJqhsa9Y_dicw
+REACT_APP_FIREBASE_AUTH_DOMAIN=petsnaps-882dd.firebaseapp.com
+REACT_APP_FIREBASE_PROJECT_ID=petsnaps-882dd
+REACT_APP_FIREBASE_STORAGE_BUCKET=petsnaps-882dd.firebasestorage.app
+REACT_APP_FIREBASE_MESSAGING_SENDER_ID=57585989255
+REACT_APP_FIREBASE_APP_ID=1:57585989255:web:51b1312c99c407ea11ea22
+
+>>>>>>> 544d87114cac81bf2d556ce2775b3e1ca8124722
