@@ -6,7 +6,13 @@ import {
   RegisterFormComponent,
   AuthFormLayout,
 } from "../components/AuthForms";
-import { mockSignIn, mockSignUp } from "../services/mockApi";
+import {
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  updateProfile,
+} from "firebase/auth";
+import { doc, setDoc, serverTimestamp } from "firebase/firestore";
+import { auth, db } from "../firebase";
 import { useAuth } from "../context/AuthContext";
 
 function AuthScreen() {
@@ -15,7 +21,6 @@ function AuthScreen() {
   const [petName, setPetName] = useState("");
   const [error, setError] = useState("");
   const [authLoading, setAuthLoading] = useState(false);
-
   const [isFlipped, setIsFlipped] = useState(false);
   const [isRegisterForm, setIsRegisterForm] = useState(false);
 
@@ -30,40 +35,53 @@ function AuthScreen() {
 
   const { user } = useAuth();
 
+  // Intro animation logic
   useEffect(() => {
-    console.log("AuthScreen: user state changed to", user);
     const timers = [];
     timers.push(setTimeout(() => setIntroAnimationState("shrinking"), 200));
     timers.push(setTimeout(() => setIntroAnimationState("small-circle"), 1200));
     timers.push(setTimeout(() => setIntroAnimationState("expanding"), 1700));
     timers.push(setTimeout(() => setIntroAnimationState("finished"), 2700));
     return () => timers.forEach(clearTimeout);
-  }, [user]); // Add user to dependency array to log changes
+  }, []);
 
+  // Handle Sign Up / Sign In
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
     setAuthLoading(true);
     try {
       if (isRegisterForm) {
-        await mockSignUp(email, password, petName);
+        // Create new Firebase user
+        const cred = await createUserWithEmailAndPassword(auth, email, password);
+        if (petName) await updateProfile(cred.user, { displayName: petName });
+        // Add user doc to Firestore
+        await setDoc(doc(db, "users", cred.user.uid), {
+          uid: cred.user.uid,
+          email,
+          displayName: petName,
+          createdAt: serverTimestamp(),
+        });
+        console.log("✅ Registered user:", cred.user.uid);
       } else {
-        await mockSignIn(email, password);
+        // Sign In existing user
+        await signInWithEmailAndPassword(auth, email, password);
+        console.log("✅ Logged in!");
       }
     } catch (err) {
+      console.error("🔥 Firebase Auth Error:", err);
       setError(err.message);
     } finally {
       setAuthLoading(false);
     }
   };
 
-  if (user) {
-    return <Navigate to="/home" />;
-  }
+  // Redirect to /home when logged in
+  if (user) return <Navigate to="/home" replace />;
 
   return (
     <div className="min-h-screen bg-[#FFE7CC] flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Intro Animator (ถ้ายังใช้) */}
+      {/* Intro Animation Circle */}
       <div
         className={clsx(
           "absolute top-1/2 left-1/2 z-20 w-[200px] h-[200px] rounded-full",
@@ -74,7 +92,7 @@ function AuthScreen() {
         )}
       />
 
-      {/* Wrapper ที่จะ Fade in */}
+      {/* Flip Card Wrapper */}
       <div
         className={clsx(
           "relative z-10 w-full max-w-md",
@@ -84,7 +102,6 @@ function AuthScreen() {
             : "opacity-0"
         )}
       >
-        {/* Flipper */}
         <div
           className="perspective-1000"
           onMouseEnter={() => setIsFlipped(true)}
@@ -96,10 +113,9 @@ function AuthScreen() {
               isFlipped ? "rotate-y-180 card-flipped" : ""
             )}
           >
-            {/* --- ด้านหน้า (โลโก้) --- */}
+            {/* --- Front (Logo Side) --- */}
             <div
-              className={clsx(
-                "absolute inset-0 backface-hidden flex items-center justify-center p-6",
+              className={clsx("absolute inset-0 backface-hidden flex items-center justify-center p-6",
                 "front-face"
               )}
               style={{
@@ -110,9 +126,7 @@ function AuthScreen() {
                   "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
               }}
             >
-              {/* Container สำหรับโลโก้ Pawsnap โดยเฉพาะ */}
               <div className="flex flex-col items-center justify-center text-center">
-                {/* Update image container with fixed dimensions and proper image path */}
                 <div className="w-[200px] h-[200px] flex items-center justify-center">
                   <img
                     src="Pawsnap.png"
@@ -123,10 +137,8 @@ function AuthScreen() {
               </div>
             </div>
 
-            {/* --- ด้านหลัง (ฟอร์ม) --- */}
-            <div
-              className={clsx("absolute inset-0 backface-hidden", "back-face")}
-            >
+            {/* --- Back (Auth Forms) --- */}
+            <div className={clsx("absolute inset-0 backface-hidden", "back-face")}>
               <AuthFormLayout
                 isRegisterLayout={isRegisterForm}
                 onSwitch={() => setIsRegisterForm(!isRegisterForm)}

@@ -1,5 +1,10 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { onAuthStateChanged, mockLogout } from '../services/mockApi';
+// src/context/AuthContext.js
+import React, { createContext, useContext, useState, useEffect } from "react";
+import { auth } from "../firebase";
+import {
+  onAuthStateChanged,
+  signOut as fbSignOut,
+} from "firebase/auth";
 
 const AuthContext = createContext();
 
@@ -7,16 +12,17 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  // Listen to Firebase login state
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged((currentUser) => {
-      setUser(currentUser);
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser || null);
       setLoading(false);
     });
     return () => unsubscribe();
   }, []);
 
   const logout = async () => {
-    await mockLogout();
+    await fbSignOut(auth);
     setUser(null);
   };
 

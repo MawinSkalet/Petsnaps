@@ -1,197 +1,206 @@
-import React, { useState, useEffect } from "react";
-import { Settings, User, Mail, Image, LogOut } from "lucide-react";
+import React, { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
-import { useData } from "../context/DataContext";
-import { useNavigate } from "react-router-dom";
+import { auth, db, storage } from "../firebase";
+import { updateProfile } from "firebase/auth";
+import {
+  doc,
+  getDoc,
+  setDoc,
+  updateDoc,
+  serverTimestamp,
+} from "firebase/firestore";
+import { ref as sref, uploadBytes, getDownloadURL } from "firebase/storage";
 
-function SettingsPage() {
-  const { user, logout } = useAuth();
-  const { fetchUserProfile, updateUserProfile, uploadFile } = useData();
-  const navigate = useNavigate();
-
+export default function SettingsPage() {
+  const { user, logout } = useAuth(); // user must be a real Firebase user
   const [petName, setPetName] = useState("");
   const [email, setEmail] = useState("");
   const [photoURL, setPhotoURL] = useState("");
-  const [newPhoto, setNewPhoto] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [file, setFile] = useState(null);
+  const [preview, setPreview] = useState("");
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
+  const [ok, setOk] = useState("");
 
+  // Load current profile (Auth + Firestore users/{uid})
   useEffect(() => {
-    const loadUserData = async () => {
-      if (user) {
-        const profile = await fetchUserProfile(user.uid);
-        if (profile) {
-          setPetName(profile.petName || "");
-          setEmail(profile.email || "");
-          setPhotoURL(profile.photoURL || "");
+    if (!user) return;
+    setEmail(user.email || "");
+    setPetName(user.displayName || "");
+    setPhotoURL(user.photoURL || "");
+
+    // Also read Firestore doc (source of truth for app)
+    (async () => {
+      try {
+        const snap = await getDoc(doc(db, "users", user.uid));
+        if (snap.exists()) {
+          const d = snap.data();
+          if (d.displayName) setPetName(d.displayName);
+          if (d.photoURL) setPhotoURL(d.photoURL);
+        } else {
+          // create skeleton if missing
+          await setDoc(doc(db, "users", user.uid), {
+            uid: user.uid,
+            email: user.email,
+            displayName: user.displayName || "",
+            photoURL: user.photoURL || "",
+            createdAt: serverTimestamp(),
+          });
         }
+      } catch (e) {
+        console.warn("load settings failed:", e);
       }
-    };
-    loadUserData();
-  }, [user, fetchUserProfile]);
+    })();
+  }, [user]);
 
-  const handlePhotoChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setNewPhoto(file);
-      setPhotoURL(URL.createObjectURL(file)); // Show preview
-    }
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setError("");
-    setSuccess("");
-
-    try {
-      let updatedPhotoURL = photoURL;
-      if (newPhoto) {
-        updatedPhotoURL = await uploadFile(newPhoto, `profile_pictures/${user.uid}/${newPhoto.name}`);
-      }
-
-      await updateUserProfile(user.uid, {
-        petName,
-        email,
-        photoURL: updatedPhotoURL,
-      });
-      setSuccess("Profile updated successfully!");
-      setNewPhoto(null); // Clear new photo after upload
-    } catch (err) {
-      console.error("Error updating profile:", err);
-      setError("Failed to update profile. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleLogout = async () => {
-    try {
-      await logout();
-      navigate("/");
-    } catch (err) {
-      console.error("Error logging out:", err);
-      setError("Failed to log out.");
-    }
-  };
-
-  if (!user) {
-    return (
-      <div className="flex h-[600px] bg-white rounded-3xl shadow-lg overflow-hidden items-center justify-center">
-        <div className="text-center p-8">
-          <Settings className="w-20 h-20 text-[#E2B887]/50 mx-auto mb-4" />
-          <p className="text-xl text-[#8B6F47]/60 font-semibold">
-            Please log in to view settings.
-          </p>
-        </div>
-      </div>
-    );
+  function onPick(e) {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    setFile(f);
+    const url = URL.createObjectURL(f);
+    setPreview(url);
   }
 
+  async function onSave(e) {
+  e?.preventDefault?.();
+  if (!user) return;
+  setSaving(true);
+  setError("");
+  setOk("");
+
+  try {
+    let newPhotoURL = photoURL;
+
+    // (A) Upload avatar if chosen
+    if (file) {
+      try {
+        const path = `profile/${user.uid}/avatar.jpg`;
+        const r = sref(storage, path);
+        await uploadBytes(r, file);
+        newPhotoURL = await getDownloadURL(r);
+      } catch (err) {
+        console.error("Avatar upload error:", err);
+        throw new Error(
+          `Avatar upload failed: ${err.code || ""} ${err.message || ""}`.trim()
+        );
+      }
+    }
+
+    // (B) Update Firebase Auth profile
+    try {
+      await updateProfile(auth.currentUser, {
+        displayName: petName || "",
+        photoURL: newPhotoURL || "",
+      });
+    } catch (err) {
+      console.error("Auth updateProfile error:", err);
+      throw new Error(
+        `Auth profile update failed: ${err.code || ""} ${err.message || ""}`.trim()
+      );
+    }
+
+    // (C) Update Firestore users/{uid}
+    try {
+      await updateDoc(doc(db, "users", user.uid), {
+        displayName: petName || "",
+        photoURL: newPhotoURL || "",
+        updatedAt: serverTimestamp(),
+      });
+    } catch (err) {
+      console.error("Firestore updateDoc error:", err);
+      throw new Error(
+        `Firestore write failed: ${err.code || ""} ${err.message || ""}`.trim()
+      );
+    }
+
+    setPhotoURL(newPhotoURL);
+    setOk("Profile updated.");
+    setFile(null);
+    setPreview("");
+  } catch (e2) {
+    setError(e2.message || "Failed to update profile.");
+  } finally {
+    setSaving(false);
+  }
+}
+
+
   return (
-    <div className="bg-white rounded-3xl shadow-lg p-6 max-w-2xl mx-auto my-8">
-      <h2 className="text-3xl font-bold text-[#8B6F47] text-center mb-6">
-        Settings
-      </h2>
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Profile Picture */}
-        <div className="flex flex-col items-center space-y-4">
-          <img
-            src={photoURL || "https://api.dicebear.com/7.x/fun-emoji/svg?seed=placeholder"}
-            alt="Profile"
-            className="w-32 h-32 rounded-full object-cover border-4 border-[#E2B887]"
-          />
-          <label htmlFor="profile-photo-upload" className="cursor-pointer bg-[#E2B887] text-white px-4 py-2 rounded-full hover:bg-[#D4A77C] transition-colors flex items-center space-x-2">
-            <Image className="w-5 h-5" />
-            <span>Change Photo</span>
-            <input
-              id="profile-photo-upload"
-              type="file"
-              accept="image/*"
-              onChange={handlePhotoChange}
-              className="hidden"
+    <div className="min-h-[calc(100vh-80px)] flex items-start justify-center p-6 bg-[#FFE7CC]">
+      <form
+        onSubmit={onSave}
+        className="w-full max-w-md bg-white/90 rounded-2xl shadow-lg p-6"
+      >
+        <h2 className="text-2xl font-bold text-center mb-4">Settings</h2>
+
+        {/* Avatar */}
+        <div className="flex flex-col items-center mb-4">
+          <div className="w-24 h-24 rounded-full overflow-hidden bg-[#F5F5F5] border">
+            <img
+              src={preview || photoURL || "https://i.pravatar.cc/96?img=3"}
+              alt="avatar"
+              className="w-full h-full object-cover"
             />
+          </div>
+          <label
+            htmlFor="pick-avatar"
+            className="mt-3 px-3 py-1 rounded-full text-sm bg-[#FFE7CC] text-[#8B6F47] border border-[#E2B887]/60 cursor-pointer"
+          >
+            Change Photo
           </label>
+          <input
+            id="pick-avatar"
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={onPick}
+          />
         </div>
 
         {/* Pet Name */}
-        <div>
-          <label htmlFor="petName" className="block text-lg font-semibold text-[#8B6F47] mb-2">
-            <User className="inline-block w-5 h-5 mr-2 text-[#E2B887]" />
-            Pet Name
-          </label>
-          <input
-            id="petName"
-            type="text"
-            className="w-full p-3 border border-[#E2B887]/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E2B887] text-[#8B6F47] placeholder-[#8B6F47]/50"
-            value={petName}
-            onChange={(e) => setPetName(e.target.value)}
-            required
-          />
-        </div>
+        <label className="block text-sm text-[#8B6F47] mb-1">Pet Name</label>
+        <input
+          value={petName}
+          onChange={(e) => setPetName(e.target.value)}
+          className="w-full px-4 py-3 border-2 border-orange-200 rounded-2xl focus:border-orange-400 focus:outline-none transition bg-white/80 backdrop-blur mb-3"
+          placeholder="Your pet's name"
+        />
 
-        {/* Email (Read-only for now) */}
-        <div>
-          <label htmlFor="email" className="block text-lg font-semibold text-[#8B6F47] mb-2">
-            <Mail className="inline-block w-5 h-5 mr-2 text-[#E2B887]" />
-            Email
-          </label>
-          <input
-            id="email"
-            type="email"
-            className="w-full p-3 border border-[#E2B887]/50 rounded-lg bg-gray-100 cursor-not-allowed text-[#8B6F47]/70"
-            value={email}
-            readOnly
-          />
-        </div>
+        {/* Email (read-only) */}
+        <label className="block text-sm text-[#8B6F47] mb-1">Email</label>
+        <input
+          value={email}
+          readOnly
+          className="w-full px-4 py-3 border-2 border-orange-100 rounded-2xl bg-gray-50 text-gray-500 mb-4"
+        />
 
-        {error && <p className="text-red-500 text-center">{error}</p>}
-        {success && <p className="text-green-500 text-center">{success}</p>}
+        {error && (
+          <div className="mb-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-2xl px-4 py-2">
+            {error}
+          </div>
+        )}
+        {ok && (
+          <div className="mb-3 text-sm text-green-700 bg-green-50 border border-green-200 rounded-2xl px-4 py-2">
+            {ok}
+          </div>
+        )}
 
-        {/* Save Changes Button */}
         <button
           type="submit"
-          className="w-full bg-[#E2B887] text-white font-bold py-3 px-4 rounded-xl hover:bg-[#D4A77C] transition-colors duration-300 flex items-center justify-center"
-          disabled={loading}
+          disabled={saving}
+          className="w-full bg-[#E2B887] text-white py-3 rounded-2xl font-semibold hover:brightness-95 transition disabled:opacity-50"
         >
-          {loading ? (
-            <svg
-              className="animate-spin h-5 w-5 text-white mr-3"
-              viewBox="0 0 24 24"
-            >
-              <circle
-                className="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                strokeWidth="4"
-              ></circle>
-              <path
-                className="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-              ></path>
-            </svg>
-          ) : (
-            <Settings className="w-5 h-5 mr-2" />
-          )}
-          {loading ? "Saving..." : "Save Changes"}
+          {saving ? "Saving..." : "Save Changes"}
         </button>
 
-        {/* Logout Button */}
         <button
           type="button"
-          onClick={handleLogout}
-          className="w-full bg-red-500 text-white font-bold py-3 px-4 rounded-xl hover:bg-red-600 transition-colors duration-300 flex items-center justify-center mt-4"
+          onClick={logout}
+          className="w-full mt-3 bg-red-500 text-white py-3 rounded-2xl font-semibold hover:brightness-95 transition"
         >
-          <LogOut className="w-5 h-5 mr-2" />
           Logout
         </button>
       </form>
     </div>
   );
 }
-
-export default SettingsPage;
