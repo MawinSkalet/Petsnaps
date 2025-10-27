@@ -2,9 +2,11 @@ import React, { useEffect, useState } from "react";
 import { db } from "../firebase";
 import { collection, getDocs, orderBy, query } from "firebase/firestore";
 import PostCard from "../components/PostCard";
+import { reload } from "firebase/auth";
 
 export default function HomePage() {
   const [posts, setPosts] = useState([]);
+  const [reloadFlag, setReloadFlag] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -13,12 +15,12 @@ export default function HomePage() {
       const snap = await getDocs(q1);
       setPosts(snap.docs.map(d => ({ id: d.id, ...d.data() })));
     })();
-  }, []);
+  }, [reloadFlag]);
 
 return (
   <div className="space-y-4">
     {posts.map((p) => (
-      <PostCard key={p.id} post={p} />
+      <PostCard key={p.id} post={p} onReload={() => setReloadFlag(prev => !p)} />
     ))}
   </div>
 );

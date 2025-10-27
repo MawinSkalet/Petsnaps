@@ -2,23 +2,27 @@ import React, { useState } from "react";
 import { Heart, MessageCircle, Trash2 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useData } from "../context/DataContext";
-import { deletePost } from "../services/mockApi"; // or firebaseApi
-import { updatePostLikes } from "../services/firebaseApi";
+import { updatePostLikes, deletePost } from "../services/firebaseApi";
 
 
-function PostCard({ post }) {
+function PostCard({ post, onReload }) {
   const { user } = useAuth();
   const { loadPosts } = useData();
   const [liked, setLiked] = useState(post.likedBy?.includes(user.uid) || false);
   const [likes, setLikes] = useState(post.likes || post.likeCount || 0);
+  const [loadingLike, setLoadingLike] = useState(false);
 
   const handleLike = async () => {
+    if (loadingLike) return;
+    setLoadingLike(true);
     try {
       await updatePostLikes(post.id, user.uid, liked);
       setLikes((prev) => (liked ? prev - 1 : prev + 1));
       setLiked(!liked);
     } catch (error) {
       console.error("Error liking post:", error);
+    } finally {
+      setLoadingLike(false);
     }
   };
 
@@ -26,7 +30,7 @@ function PostCard({ post }) {
     if (window.confirm("Are you sure you want to delete this post?")) {
       try {
         await deletePost(post.id);
-        loadPosts();
+        onReload();        
       } catch (error) {
         console.error("Error deleting post:", error);
       }
