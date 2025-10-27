@@ -13,8 +13,11 @@ import {
 import { ref as sref, uploadBytes, getDownloadURL } from "firebase/storage";
 
 export default function SettingsPage() {
-  const { user, logout } = useAuth();         // real Firebase user
   const navigate = useNavigate();
+  const { user, logout } = useAuth();         // real Firebase user
+  const [error, setError]   = useState("");
+  const [saving, setSaving] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
 
   // form state
   const [petName, setPetName] = useState("");
@@ -25,11 +28,12 @@ export default function SettingsPage() {
   const [preview, setPreview] = useState("");
 
   // UI state
-  const [saving, setSaving] = useState(false);
-  const [error, setError]   = useState("");
   const [ok, setOk]         = useState("");
 
   // Load current profile from Auth + Firestore
+  useEffect(() => {
+    if (!user) navigate("/", { replace: true });}, [user, navigate]);
+
   useEffect(() => {
     if (!user) return;
     setEmail(user.email || "");
@@ -112,6 +116,19 @@ export default function SettingsPage() {
       setSaving(false);
     }
   }
+
+  async function handleLogout() {
+  setError("");
+  setLoggingOut(true);
+  try {
+    await logout();       // calls Firebase signOut
+    navigate("/");        // send back to auth screen
+  } catch (e) {
+    setError(e?.message || "Logout failed.");
+  } finally {
+    setLoggingOut(false);
+  }
+}
 
   return (
     <div className="min-h-[calc(100vh-80px)] flex items-start justify-center p-6 bg-[#FFE7CC]">
