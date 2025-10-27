@@ -1,13 +1,12 @@
 import React, { useState } from "react";
 import { Heart, MessageCircle, Trash2 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
-import { useData } from "../context/DataContext";
 import { updatePostLikes, deletePost } from "../services/firebaseApi";
-
+import { useNavigate } from "react-router-dom";
 
 function PostCard({ post, onReload }) {
   const { user } = useAuth();
-  const { loadPosts } = useData();
+  const navigate = useNavigate();
   const [liked, setLiked] = useState(post.likedBy?.includes(user.uid) || false);
   const [likes, setLikes] = useState(post.likes || post.likeCount || 0);
   const [loadingLike, setLoadingLike] = useState(false);
@@ -30,24 +29,37 @@ function PostCard({ post, onReload }) {
     if (window.confirm("Are you sure you want to delete this post?")) {
       try {
         await deletePost(post.id);
-        onReload();        
+        onReload();
       } catch (error) {
         console.error("Error deleting post:", error);
       }
     }
   };
 
+  const goToProfile = () => {
+    if (post.uid === user.uid) {
+      navigate("/profile");
+    } else {
+      navigate(`/u/${post.uid}`);
+    }
+  };
+
   return (
     <div className="bg-white rounded-3xl shadow-lg overflow-hidden">
       <div className="p-4 flex items-center justify-between">
-        <div className="flex items-center space-x-3">
+        <div
+          className="flex items-center space-x-3 cursor-pointer hover:opacity-80 transition"
+          onClick={goToProfile}
+        >
           <img
             src={post.author?.photoURL || "https://i.pravatar.cc/48?img=5"}
             alt={post.author?.displayName || "user"}
             className="w-12 h-12 rounded-full border-2 border-[#E2B887] object-cover"
           />
           <div>
-            <p className="font-bold text-[#8B6F47]">{post.author?.displayName || "User"}</p>
+            <p className="font-bold text-[#8B6F47] hover:text-[#E2B887]">
+              {post.author?.displayName || "User"}
+            </p>
             <p className="text-sm text-[#8B6F47]/60">
               {post.createdAt?.toDate
                 ? new Date(post.createdAt.toDate()).toLocaleDateString()
@@ -73,7 +85,6 @@ function PostCard({ post, onReload }) {
         />
       )}
 
-
       <div className="p-4 space-y-3">
         <div className="flex items-center space-x-4">
           <button
@@ -91,7 +102,12 @@ function PostCard({ post, onReload }) {
         </div>
         {post.text && (
           <p className="text-[#8B6F47]">
-            <span className="font-bold mr-2">{post.author?.displayName}</span>
+            <span
+              className="font-bold mr-2 cursor-pointer hover:text-[#E2B887] transition"
+              onClick={goToProfile}
+            >
+              {post.author?.displayName}
+            </span>
             {post.text}
           </p>
         )}
