@@ -1,96 +1,59 @@
-import React, { useState } from "react";
-import { Heart, MessageCircle, Trash2 } from "lucide-react";
-import { useAuth } from "../context/AuthContext";
-import { useData } from "../context/DataContext";
-import { deletePost, updatePostLikes } from "../services/mockApi";
+import React from "react";
+import { Link } from "react-router-dom";
 
-function PostCard({ post }) {
-  const { user } = useAuth();
-  const { loadPosts } = useData();
-  const [liked, setLiked] = useState(
-    post.likedBy?.includes(user.uid) || false
-  );
-  const [likes, setLikes] = useState(post.likes || 0);
-
-  const handleLike = async () => {
-    try {
-      await updatePostLikes(post.id, user.uid, liked);
-      setLikes((prev) => (liked ? prev - 1 : prev + 1));
-      setLiked(!liked);
-    } catch (error) {
-      console.error("Error liking post:", error);
-    }
-  };
-
-  const handleDelete = async () => {
-    if (window.confirm("Are you sure you want to delete this post?")) {
-      try {
-        await deletePost(post.id);
-        loadPosts(); // Refresh posts after deletion
-      } catch (error) {
-        console.error("Error deleting post:", error);
-      }
-    }
-  };
-
-  return (
-    <div className="bg-white rounded-3xl shadow-lg overflow-hidden">
-      <div className="p-4 flex items-center justify-between">
-        <div className="flex items-center space-x-3">
-          <img
-            src={post.userPhoto}
-            alt={post.petName}
-            className="w-12 h-12 rounded-full border-2 border-[#E2B887] object-cover"
-          />
-          <div>
-            <p className="font-bold text-[#8B6F47]">{post.petName}</p>
-            <p className="text-sm text-[#8B6F47]/60">
-              {post.createdAt?.toDate
-                ? new Date(post.createdAt.toDate()).toLocaleDateString()
-                : "Just now"}
-            </p>
-          </div>
-        </div>
-        {post.userId === user.uid && (
-          <button
-            onClick={handleDelete}
-            className="p-2 text-red-500 hover:bg-red-50 rounded-xl"
-          >
-            <Trash2 className="w-5 h-5" />
-          </button>
-        )}
-      </div>
-
+// simple grid renderer; you can fancy this up later
+function ImagesGrid({ images = [] }) {
+  if (!images.length) return null;
+  if (images.length === 1) {
+    return (
       <img
-        src={post.imageUrl}
-        alt="Pet post"
-        className="w-full h-96 object-cover"
+        src={images[0].url}
+        alt="post"
+        className="w-full rounded-xl object-cover"
       />
-
-      <div className="p-4 space-y-3">
-        <div className="flex items-center space-x-4">
-          <button
-            onClick={handleLike}
-            className={`flex items-center space-x-2 transition ${
-              liked ? "text-red-500" : "text-[#8B6F47] hover:text-red-500"
-            }`}
-          >
-            <Heart className={`w-7 h-7 ${liked ? "fill-current" : ""}`} />
-            <span className="font-semibold">{likes}</span>
-          </button>
-          <button className="flex items-center space-x-2 text-[#8B6F47] hover:text-[#E2B887]">
-            <MessageCircle className="w-7 h-7" />
-          </button>
-        </div>
-        <div>
-          <p className="text-[#8B6F47]">
-            <span className="font-bold mr-2">{post.petName}</span>
-            {post.caption}
-          </p>
-        </div>
-      </div>
+    );
+  }
+  return (
+    <div className="grid grid-cols-2 gap-2">
+      {images.map((img, i) => (
+        <img
+          key={i}
+          src={img.url}
+          alt={`post-${i}`}
+          className="w-full h-48 object-cover rounded-xl"
+        />
+      ))}
     </div>
   );
 }
 
-export default PostCard;
+export default function PostCard({ post, author }) {
+  return (
+    <div className="bg-white/90 rounded-2xl shadow p-4 space-y-3">
+      {/* header */}
+      <div className="flex items-center gap-3">
+        <img
+          src={author?.photoURL || "https://i.pravatar.cc/48?img=5"}
+          alt={author?.displayName || "user"}
+          className="w-10 h-10 rounded-full object-cover"
+        />
+        <div className="leading-tight">
+          <Link to="/profile" className="font-semibold text-[#8B6F47] hover:underline">
+            {author?.displayName || "Unknown"}
+          </Link>
+          <div className="text-xs text-[#8B6F47]/60">
+            {post?.createdAt?.toDate
+              ? post.createdAt.toDate().toLocaleString()
+              : ""}
+          </div>
+        </div>
+      </div>
+
+      {/* caption */}
+      {post?.caption && <p className="text-[#634f2f]">{post.caption}</p>}
+
+      {/* images */}
+      <ImagesGrid images={post?.images || []} />
+    </div>
+  );
+}
