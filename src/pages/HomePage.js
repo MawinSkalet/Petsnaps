@@ -1,48 +1,40 @@
-import React from "react";
-import { Camera } from "lucide-react";
-import { useData } from "../context/DataContext";
-import PostCard from "../components/PostCard";
+import React, { useEffect, useState } from "react";
+import { db } from "../firebase";
+import { collection, getDocs, orderBy, query } from "firebase/firestore";
 
-function HomePage() {
-  const { posts, dataLoading } = useData();
+export default function HomePage() {
+  const [posts, setPosts] = useState([]);
 
-  if (dataLoading) {
-    return (
-      <div className="text-center py-12">
-        <div className="w-16 h-16 rounded-full bg-[#E2B887] mb-4 animate-pulse shadow-xl mx-auto" />
-        <p className="text-[#8B6F47] text-lg">Loading posts...</p>
-      </div>
-    );
-  }
+  useEffect(() => {
+    (async () => {
+      // If Firestore asks for an index, create it (posts: orderBy createdAt desc)
+      let q1 = query(collection(db, "posts"), orderBy("createdAt", "desc"));
+      const snap = await getDocs(q1);
+      setPosts(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    })();
+  }, []);
 
   return (
-    <div className="space-y-6">
-      <div className="text-center py-8">
-        <h2 className="text-3xl font-bold text-[#8B6F47]">Home</h2>
-        <p className="text-[#8B6F47]/70 mt-2">
-          See what your pet friends are up to
-        </p>
-      </div>
-
-      <div className="space-y-4">
-        {posts.length === 0 ? (
-          <div className="text-center py-12 bg-white rounded-3xl shadow-lg">
-            <Camera className="w-16 h-16 text-[#E2B887] mx-auto mb-4" />
-            <p className="text-[#8B6F47] text-lg">
-              No posts yet. Be the first to share! 🐾
-            </p>
-          </div>
-        ) : (
-          posts.map((post) => (
-            <PostCard
-              key={post.id}
-              post={post}
+    <div className="space-y-4">
+      {posts.map((p) => (
+        <div key={p.id} className="bg-white/90 rounded-2xl shadow p-4">
+          <div className="flex items-center gap-3 mb-3">
+            <img
+              src={p?.author?.photoURL || "https://i.pravatar.cc/40?img=7"}
+              alt=""
+              className="w-10 h-10 rounded-full object-cover"
             />
-          ))
-        )}
-      </div>
+            <div className="font-semibold text-[#8B6F47]">
+              {p?.author?.displayName || "User"}
+            </div>
+          </div>
+
+          {Array.isArray(p.images) && p.images.length > 0 && (
+            <img src={p.images[0]} alt="" className="w-full rounded-xl object-cover" />
+          )}
+          {p.text && <p className="mt-3 text-[#8B6F47]">{p.text}</p>}
+        </div>
+      ))}
     </div>
   );
 }
-
-export default HomePage;

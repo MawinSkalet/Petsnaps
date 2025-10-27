@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { auth, db, storage } from "../firebase";
+import { useNavigate } from "react-router-dom";
 import { updateProfile } from "firebase/auth";
 import {
   doc,
@@ -12,125 +13,109 @@ import {
 import { ref as sref, uploadBytes, getDownloadURL } from "firebase/storage";
 
 export default function SettingsPage() {
-  const { user, logout } = useAuth(); // user must be a real Firebase user
+  const { user, logout } = useAuth();         // real Firebase user
+  const navigate = useNavigate();
+
+  // form state
   const [petName, setPetName] = useState("");
-  const [email, setEmail] = useState("");
+  const [bio, setBio]       = useState("");
+  const [email, setEmail]   = useState("");
   const [photoURL, setPhotoURL] = useState("");
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState("");
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
-  const [ok, setOk] = useState("");
 
-  // Load current profile (Auth + Firestore users/{uid})
+  // UI state
+  const [saving, setSaving] = useState(false);
+  const [error, setError]   = useState("");
+  const [ok, setOk]         = useState("");
+
+  // Load current profile from Auth + Firestore
   useEffect(() => {
     if (!user) return;
     setEmail(user.email || "");
     setPetName(user.displayName || "");
     setPhotoURL(user.photoURL || "");
 
-    // Also read Firestore doc (source of truth for app)
     (async () => {
       try {
         const snap = await getDoc(doc(db, "users", user.uid));
         if (snap.exists()) {
           const d = snap.data();
           if (d.displayName) setPetName(d.displayName);
-          if (d.photoURL) setPhotoURL(d.photoURL);
+          if (d.bio)         setBio(d.bio);
+          if (d.photoURL)    setPhotoURL(d.photoURL);
         } else {
-          // create skeleton if missing
+          // create minimal doc if missing
           await setDoc(doc(db, "users", user.uid), {
             uid: user.uid,
-            email: user.email,
+            email: user.email || "",
             displayName: user.displayName || "",
             photoURL: user.photoURL || "",
+            bio: "",
             createdAt: serverTimestamp(),
           });
         }
       } catch (e) {
-        console.warn("load settings failed:", e);
+        console.warn("settings load failed:", e);
       }
     })();
   }, [user]);
 
+  // pick avatar
   function onPick(e) {
     const f = e.target.files?.[0];
     if (!f) return;
     setFile(f);
-    const url = URL.createObjectURL(f);
-    setPreview(url);
+    setPreview(URL.createObjectURL(f));
   }
 
+  // save all changes
   async function onSave(e) {
-  e?.preventDefault?.();
-  if (!user) return;
-  setSaving(true);
-  setError("");
-  setOk("");
+    e?.preventDefault?.();
+    if (!user) return;
 
-  try {
-    let newPhotoURL = photoURL;
+    setSaving(true);
+    setError("");
+    setOk("");
 
-    // (A) Upload avatar if chosen
-    if (file) {
-      try {
-        const path = `profile/${user.uid}/avatar.jpg`;
-        const r = sref(storage, path);
-        await uploadBytes(r, file);
-        newPhotoURL = await getDownloadURL(r);
-      } catch (err) {
-        console.error("Avatar upload error:", err);
-        throw new Error(
-          `Avatar upload failed: ${err.code || ""} ${err.message || ""}`.trim()
-        );
-      }
-    }
-
-    // (B) Update Firebase Auth profile
     try {
+      let newPhoto = photoURL;
+
+      // upload avatar if chosen
+      if (file) {
+        const r = sref(storage, `profile/${user.uid}/avatar.jpg`);
+        await uploadBytes(r, file);
+        newPhoto = await getDownloadURL(r);
+      }
+
+      // update Firebase Auth displayName/photo
       await updateProfile(auth.currentUser, {
         displayName: petName || "",
-        photoURL: newPhotoURL || "",
+        photoURL: newPhoto || "",
       });
-    } catch (err) {
-      console.error("Auth updateProfile error:", err);
-      throw new Error(
-        `Auth profile update failed: ${err.code || ""} ${err.message || ""}`.trim()
-      );
-    }
 
-    // (C) Update Firestore users/{uid}
-    try {
+      // update Firestore profile doc (source of truth for app)
       await updateDoc(doc(db, "users", user.uid), {
         displayName: petName || "",
-        photoURL: newPhotoURL || "",
+        photoURL: newPhoto || "",
+        bio: bio || "",
         updatedAt: serverTimestamp(),
       });
-    } catch (err) {
-      console.error("Firestore updateDoc error:", err);
-      throw new Error(
-        `Firestore write failed: ${err.code || ""} ${err.message || ""}`.trim()
-      );
+
+      setPhotoURL(newPhoto);
+      setOk("Profile updated.");
+      setFile(null);
+      setPreview("");
+    } catch (e) {
+      setError(e.message || "Failed to update profile.");
+    } finally {
+      setSaving(false);
     }
-
-    setPhotoURL(newPhotoURL);
-    setOk("Profile updated.");
-    setFile(null);
-    setPreview("");
-  } catch (e2) {
-    setError(e2.message || "Failed to update profile.");
-  } finally {
-    setSaving(false);
   }
-}
-
 
   return (
     <div className="min-h-[calc(100vh-80px)] flex items-start justify-center p-6 bg-[#FFE7CC]">
-      <form
-        onSubmit={onSave}
-        className="w-full max-w-md bg-white/90 rounded-2xl shadow-lg p-6"
-      >
+      <form onSubmit={onSave} className="w-full max-w-md bg-white/90 rounded-2xl shadow-lg p-6">
         <h2 className="text-2xl font-bold text-center mb-4">Settings</h2>
 
         {/* Avatar */}
@@ -148,13 +133,7 @@ export default function SettingsPage() {
           >
             Change Photo
           </label>
-          <input
-            id="pick-avatar"
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={onPick}
-          />
+          <input id="pick-avatar" type="file" accept="image/*" className="hidden" onChange={onPick} />
         </div>
 
         {/* Pet Name */}
@@ -164,6 +143,16 @@ export default function SettingsPage() {
           onChange={(e) => setPetName(e.target.value)}
           className="w-full px-4 py-3 border-2 border-orange-200 rounded-2xl focus:border-orange-400 focus:outline-none transition bg-white/80 backdrop-blur mb-3"
           placeholder="Your pet's name"
+        />
+
+        {/* Bio */}
+        <label className="block text-sm text-[#8B6F47] mb-1">Bio</label>
+        <textarea
+          rows={3}
+          value={bio}
+          onChange={(e) => setBio(e.target.value)}
+          className="w-full px-4 py-3 border-2 border-orange-200 rounded-2xl focus:border-orange-400 focus:outline-none transition bg-white/80 backdrop-blur mb-3"
+          placeholder="A short bio…"
         />
 
         {/* Email (read-only) */}
@@ -185,14 +174,25 @@ export default function SettingsPage() {
           </div>
         )}
 
-        <button
-          type="submit"
-          disabled={saving}
-          className="w-full bg-[#E2B887] text-white py-3 rounded-2xl font-semibold hover:brightness-95 transition disabled:opacity-50"
-        >
-          {saving ? "Saving..." : "Save Changes"}
-        </button>
+        {/* Primary actions */}
+        <div className="flex items-center gap-3">
+          <button
+            type="submit"
+            disabled={saving}
+            className="flex-1 bg-[#E2B887] text-white py-3 rounded-2xl font-semibold hover:brightness-95 transition disabled:opacity-50"
+          >
+            {saving ? "Saving..." : "Save Changes"}
+          </button>
+          <button
+            type="button"
+            className="px-4 py-3 rounded-2xl border border-[#E2B887]/60 text-[#8B6F47] hover:bg-[#FFF1DF]"
+            onClick={() => navigate("/profile")}
+          >
+            View Profile
+          </button>
+        </div>
 
+        {/* Secondary */}
         <button
           type="button"
           onClick={logout}
