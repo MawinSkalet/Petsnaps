@@ -34,7 +34,7 @@ function Layout({ children }) {
                 className="w-full h-full object-contain scale-150"
               />
             </div>
-            <span className="text-2xl font-bold text-[#8B6F47]">PawSnap</span>
+            <span className="text-2xl font-bold text-[#8B6F47]">PetSnap</span>
           </div>
 
           <div className="flex items-center">
@@ -55,7 +55,7 @@ function Layout({ children }) {
       </div>
 
       {/* Bottom Navigation: Home / Profile / Message  (+)  Search / Notifications / Settings */}
-      <nav className="bg-white border-t border-[#E2B887]/30 px-6 py-4">
+      <nav className="fixed bottom-0 left-0 w-full z-50 bg-white border-t border-[#E2B887]/30 px-6 py-4">
         <div className="max-w-7xl mx-auto flex items-center justify-around">
           <NavButton icon={Home} to="/home" />
           <NavButton icon={User} to="/profile" />
