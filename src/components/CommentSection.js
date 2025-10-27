@@ -1,3 +1,4 @@
+// src/components/CommentSection.js
 import React, { useEffect, useState } from "react";
 import { db } from "../firebase";
 import {
@@ -12,6 +13,8 @@ import {
 } from "firebase/firestore";
 import { useAuth } from "../context/AuthContext";
 import { Trash2 } from "lucide-react";
+// Import the separate CSS file
+import '../styles/commentSection.css'; 
 
 export default function CommentSection({ postId }) {
   const { user } = useAuth();
@@ -35,7 +38,7 @@ export default function CommentSection({ postId }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!text.trim() || !user) return; // user check hinzugefügt
+    if (!text.trim() || !user) return; 
 
     await addDoc(collection(db, "posts", postId, "comments"), {
       text: text.trim(),
@@ -61,47 +64,47 @@ export default function CommentSection({ postId }) {
   };
 
   return (
-    <div className="space-y-4">
-      <h3 className="text-lg font-semibold text-[#8B6F47]">Comments</h3>
+    <div className="comment-section">
+      <h3 className="section-title">Comments</h3>
 
-      <form onSubmit={handleSubmit} className="flex gap-2">
+      <form onSubmit={handleSubmit} className="comment-form">
         <input
           value={text}
           onChange={(e) => setText(e.target.value)}
           placeholder="Write a comment..."
-          className="flex-1 p-2 border border-[#E2B887]/40 rounded-lg text-sm text-[#8B6F47] placeholder-[#8B6F47]/40"
+          className="comment-input"
         />
         <button
           type="submit"
-          className="px-3 py-1 bg-[#E2B887] text-white rounded-lg text-sm hover:bg-[#D4A77C]"
+          className="comment-post-button"
         >
           Post
         </button>
       </form>
 
-      <div className="space-y-3 max-h-[400px] overflow-y-auto pr-1">
+      <div className="comments-list">
         {comments.map((c) => (
           <div
             key={c.id}
-            // ZUÄUSSEREM CONTAINER HINZUGEFÜGT
-            className="flex items-start gap-3 text-sm hover:bg-[#F9F6F2] p-2 rounded-lg transition group" 
+            className="comment-item" // The main container for one comment
           >
             <img
               src={c.author?.photoURL || "https://i.pravatar.cc/40?img=8"}
               alt=""
-              className="w-8 h-8 rounded-full object-cover"
+              className="comment-avatar"
             />
-            <div className="flex-1">
-              <div className="font-medium text-[#8B6F47]">{c.author?.displayName || "User"}</div>
-              <div className="flex items-center justify-between text-[#8B6F47]/80">
+            <div className="comment-content">
+              <div className="comment-author">{c.author?.displayName || "User"}</div>
+              <div className="comment-body">
                 <span>{c.text}</span>
+                {/* Check if current user is the comment author */}
                 {c.author?.uid === user?.uid && (
                   <button
                     onClick={() => handleDeleteComment(c.id)}
-                    className="text-red-500 hover:bg-red-50 rounded-md p-1 ml-2 opacity-0 group-hover:opacity-100 transition-opacity" 
+                    className="delete-button" // Button styled by CSS file
                     title="Delete comment"
                   >
-                    <Trash2 className="w-4 h-4" />
+                    <Trash2 className="icon-trash" />
                   </button>
                 )}
               </div>
