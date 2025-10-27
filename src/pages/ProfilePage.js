@@ -1,8 +1,12 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { db } from "../firebase";
+import { Trash2 } from "lucide-react";
 import { collection, doc, getDoc, getDocs, orderBy, query, where } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
+import { getFollowCounts } from "../services/socialApi";
+import { deletePost } from "../services/firebaseApi"
+
 
 export default function ProfilePage() {
   const { user } = useAuth();
@@ -10,6 +14,19 @@ export default function ProfilePage() {
 
   const [profile, setProfile] = useState(null);
   const [posts, setPosts] = useState([]);
+  const [counts, setCounts] = useState({ followers: 0, following: 0 });
+
+  const handleDelete = async (postId) => {
+  if (window.confirm("Are you sure you want to delete this post?")) {
+    try {
+      await deletePost(postId);
+      setPosts(prev => prev.filter(p => p.id !== postId)); // lokal aktualisieren
+    } catch (err) {
+      console.error("Error deleting post:", err);
+    }
+  }
+};
+  
 
   useEffect(() => {
     if (!user) return;
@@ -36,6 +53,22 @@ export default function ProfilePage() {
             .sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0))
         );
       }
+
+      // counts
+      const { followersCount, followingCount } = await getFollowCounts(user.uid);
+      setCounts({ followers: followersCount, following: followingCount });
+
+      const handleDelete = async (postId) => {
+        if (window.confirm("Are you sure you want to delete this post?")) {
+          try {
+            await deletePost(postId);
+            setPosts(prev => prev.filter(p => p.id !== postId));
+          } catch (err) {
+            console.error("Error deleting post:", err);
+          }
+        }
+      };
+
     })();
   }, [user]);
 
@@ -63,8 +96,12 @@ export default function ProfilePage() {
             </div>
             <div className="mt-2 flex gap-6 text-sm text-[#8B6F47]">
               <span><b>{posts.length}</b> posts</span>
-              <span><b>0</b> followers</span>
-              <span><b>0</b> following</span>
+              <span>
+                <b>{counts.followers}</b> followers
+              </span>
+              <span>
+                <b>{counts.following}</b> following
+              </span>
             </div>
           </div>
         </div>
@@ -74,13 +111,21 @@ export default function ProfilePage() {
             <div className="col-span-full text-center text-[#8B6F47]/70">No posts yet.</div>
           ) : (
             posts.map((p) => (
-              <div key={p.id} className="bg-white/90 rounded-xl shadow overflow-hidden">
+              <div key={p.id} className="relative bg-white/90 rounded-xl shadow overflow-hidden">
                 {Array.isArray(p.images) && p.images[0] ? (
                   <img src={p.images[0]} alt="" className="w-full aspect-square object-cover" />
                 ) : (
                   <div className="w-full aspect-square bg-[#F5F5F5]" />
                 )}
                 {p.text && <div className="px-3 py-2 text-sm text-[#8B6F47] line-clamp-2">{p.text}</div>}
+
+                {/* Delete Button */}
+                <button
+                  onClick={() => handleDelete(p.id)}
+                  className="absolute bottom-0.5 right-2 p-2 text-red-500 hover:bg-red-50 rounded-xl"
+                >
+                  <Trash2 className="w-5 h-5" />
+              </button>
               </div>
             ))
           )}
