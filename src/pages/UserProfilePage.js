@@ -1,7 +1,15 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { db } from "../firebase";
-import { collection, doc, getDoc, getDocs, orderBy, query, where } from "firebase/firestore";
+import {
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  orderBy,
+  query,
+  where,
+} from "firebase/firestore";
 import { useAuth } from "../context/AuthContext";
 import FollowButton from "../components/FollowButton";
 import { getFollowCounts } from "../services/socialApi";
@@ -14,6 +22,12 @@ export default function UserProfilePage() {
   const [profile, setProfile] = useState(null);
   const [posts, setPosts] = useState([]);
   const [counts, setCounts] = useState({ followers: 0, following: 0 });
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  // Refresh counts when follow status changes
+  const handleFollowChange = () => {
+    setRefreshKey((prev) => prev + 1);
+  };
 
   useEffect(() => {
     if (!uid) return;
@@ -23,7 +37,11 @@ export default function UserProfilePage() {
 
       // posts by this user
       try {
-        const q1 = query(collection(db, "posts"), where("uid", "==", uid), orderBy("createdAt", "desc"));
+        const q1 = query(
+          collection(db, "posts"),
+          where("uid", "==", uid),
+          orderBy("createdAt", "desc")
+        );
         const ds = await getDocs(q1);
         setPosts(ds.docs.map((d) => ({ id: d.id, ...d.data() })));
       } catch {
@@ -36,7 +54,7 @@ export default function UserProfilePage() {
       const { followersCount, followingCount } = await getFollowCounts(uid);
       setCounts({ followers: followersCount, following: followingCount });
     })();
-  }, [uid]);
+  }, [uid, refreshKey]);
 
   const name = useMemo(() => profile?.displayName || "User", [profile]);
 
@@ -52,10 +70,20 @@ export default function UserProfilePage() {
             <div className="flex items-center gap-3">
               <h1 className="text-2xl font-bold text-[#8B6F47]">{name}</h1>
               {me && (
-                <FollowButton
-                  me={{ uid: me.uid, displayName: me.displayName, photoURL: me.photoURL }}
-                  target={{ uid, displayName: profile?.displayName, photoURL: profile?.photoURL }}
-                />
+                <div onClick={handleFollowChange}>
+                  <FollowButton
+                    me={{
+                      uid: me.uid,
+                      displayName: me.displayName,
+                      photoURL: me.photoURL,
+                    }}
+                    target={{
+                      uid,
+                      displayName: profile?.displayName,
+                      photoURL: profile?.photoURL,
+                    }}
+                  />
+                </div>
               )}
               <button
                 onClick={() => nav("/chat")}
@@ -65,26 +93,47 @@ export default function UserProfilePage() {
               </button>
             </div>
             <div className="mt-1 flex gap-6 text-[#8B6F47]">
-              <span><b>{posts.length}</b> posts</span>
-              <span><b>{counts.followers}</b> followers</span>
-              <span><b>{counts.following}</b> following</span>
+              <span>
+                <b>{posts.length}</b> posts
+              </span>
+              <span>
+                <b>{counts.followers}</b> followers
+              </span>
+              <span>
+                <b>{counts.following}</b> following
+              </span>
             </div>
-            {profile?.bio && <p className="mt-2 text-[#8B6F47]/80">{profile.bio}</p>}
+            {profile?.bio && (
+              <p className="mt-2 text-[#8B6F47]/80">{profile.bio}</p>
+            )}
           </div>
         </div>
 
         <div className="mt-6 grid grid-cols-2 md:grid-cols-3 gap-4">
           {posts.length === 0 ? (
-            <div className="col-span-full text-center text-[#8B6F47]/70">No posts yet.</div>
+            <div className="col-span-full text-center text-[#8B6F47]/70">
+              No posts yet.
+            </div>
           ) : (
             posts.map((p) => (
-              <div key={p.id} className="bg-white/90 rounded-xl shadow overflow-hidden">
+              <div
+                key={p.id}
+                className="bg-white/90 rounded-xl shadow overflow-hidden"
+              >
                 {Array.isArray(p.images) && p.images[0] ? (
-                  <img src={p.images[0]} alt="" className="w-full aspect-square object-cover" />
+                  <img
+                    src={p.images[0]}
+                    alt=""
+                    className="w-full aspect-square object-cover"
+                  />
                 ) : (
                   <div className="w-full aspect-square bg-[#F5F5F5]" />
                 )}
-                {p.text && <div className="px-3 py-2 text-sm text-[#8B6F47] line-clamp-2">{p.text}</div>}
+                {p.text && (
+                  <div className="px-3 py-2 text-sm text-[#8B6F47] line-clamp-2">
+                    {p.text}
+                  </div>
+                )}
               </div>
             ))
           )}
