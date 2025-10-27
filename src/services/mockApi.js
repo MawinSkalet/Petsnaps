@@ -357,3 +357,29 @@ export const listenForMessages = (uid1, uid2, callback) => {
     }
   };
 };
+
+
+let mockCommentsData = {
+  post1: [
+    { id: "c1", userId: "mockFriend1", text: "So cute!", createdAt: new Date() },
+    { id: "c2", userId: "mockUserId", text: "Thanks!", createdAt: new Date() },
+  ],
+  post2: [],
+};
+
+export const getComments = async (postId) => {
+  await new Promise((res) => setTimeout(res, 100));
+  return Promise.resolve(mockCommentsData[postId] || []);
+};
+
+export const addComment = async (postId, userId, text) => {
+  const newComment = {
+    id: `c${Date.now()}`,
+    userId,
+    text,
+    createdAt: new Date(),
+  };
+  if (!mockCommentsData[postId]) mockCommentsData[postId] = [];
+  mockCommentsData[postId].push(newComment);
+  return Promise.resolve(newComment);
+};

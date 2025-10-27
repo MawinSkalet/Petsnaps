@@ -43,8 +43,11 @@ export default function Layout({ children }) {
       <header className="bg-[#FFE7CC] border-b border-[#E2B887]/30 px-6 py-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-[#E2B887] to-[#B5EAD7] rounded-full flex items-center justify-center">
-              <Camera className="w-6 h-6 text-white" />
+            <div className="w-10 h-10 bg-gradient-to-br from-[#E2B887] to-[#B5EAD7] rounded-full flex items-center justify-center overflow-hidden">
+              <img
+                src="/Pawsnap.png"
+                className="w-full h-full object-contain scale-150"
+              />
             </div>
             <span className="text-2xl font-bold text-[#8B6F47]">PawSnap</span>
           </div>
