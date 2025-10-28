@@ -53,7 +53,11 @@ function AuthScreen() {
     try {
       if (isRegisterForm) {
         // Create new Firebase user
-        const cred = await createUserWithEmailAndPassword(auth, email, password);
+        const cred = await createUserWithEmailAndPassword(
+          auth,
+          email,
+          password
+        );
         if (petName) await updateProfile(cred.user, { displayName: petName });
         // Add user doc to Firestore
         await setDoc(doc(db, "users", cred.user.uid), {
@@ -61,6 +65,8 @@ function AuthScreen() {
           email,
           displayName: petName,
           createdAt: serverTimestamp(),
+          followersCount: 0,
+          followingCount: 0,
         });
         console.log("✅ Registered user:", cred.user.uid);
       } else {
@@ -115,7 +121,8 @@ function AuthScreen() {
           >
             {/* --- Front (Logo Side) --- */}
             <div
-              className={clsx("absolute inset-0 backface-hidden flex items-center justify-center p-6",
+              className={clsx(
+                "absolute inset-0 backface-hidden flex items-center justify-center p-6",
                 "front-face"
               )}
               style={{
@@ -138,7 +145,9 @@ function AuthScreen() {
             </div>
 
             {/* --- Back (Auth Forms) --- */}
-            <div className={clsx("absolute inset-0 backface-hidden", "back-face")}>
+            <div
+              className={clsx("absolute inset-0 backface-hidden", "back-face")}
+            >
               <AuthFormLayout
                 isRegisterLayout={isRegisterForm}
                 onSwitch={() => setIsRegisterForm(!isRegisterForm)}

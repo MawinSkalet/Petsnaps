@@ -1,5 +1,8 @@
 const { setGlobalOptions } = require("firebase-functions/v2");
-const { onDocumentCreated, onDocumentDeleted } = require("firebase-functions/v2/firestore");
+const {
+  onDocumentCreated,
+  onDocumentDeleted,
+} = require("firebase-functions/v2/firestore");
 const { initializeApp } = require("firebase-admin/app");
 const { getFirestore, FieldValue } = require("firebase-admin/firestore");
 const { getMessaging } = require("firebase-admin/messaging");
@@ -50,8 +53,11 @@ async function pushToUser(uid, title, body, data = {}) {
 
 async function writeNotification(targetUid, notifId, payload) {
   // Writes under notifications/{uid}/items/{notifId}
-  await db.collection("notifications").doc(targetUid)
-    .collection("items").doc(notifId)
+  await db
+    .collection("notifications")
+    .doc(targetUid)
+    .collection("items")
+    .doc(notifId)
     .set(
       {
         userId: targetUid,
@@ -89,15 +95,24 @@ exports.onFollowerAdded = onDocumentCreated(
 
     // 2) Counters (target: followersCount, me: followingCount)
     const batch = db.batch();
-    batch.set(db.doc(`users/${targetUid}`), inc("followersCount", +1), { merge: true });
-    batch.set(db.doc(`users/${meUid}`), inc("followingCount", +1), { merge: true });
+    batch.set(db.doc(`users/${targetUid}`), inc("followersCount", +1), {
+      merge: true,
+    });
+    batch.set(db.doc(`users/${meUid}`), inc("followingCount", +1), {
+      merge: true,
+    });
     await batch.commit();
 
     // 3) Optional push
-    await pushToUser(targetUid, "New follower", `${actor.name} started following you`, {
-      type: "follow",
-      actorId: meUid,
-    });
+    await pushToUser(
+      targetUid,
+      "New follower",
+      `${actor.name} started following you`,
+      {
+        type: "follow",
+        actorId: meUid,
+      }
+    );
   }
 );
 
@@ -107,9 +122,25 @@ exports.onFollowerRemoved = onDocumentDeleted(
     const { targetUid, meUid } = event.params;
     if (!targetUid || !meUid || targetUid === meUid) return;
 
+    // Get current counts to prevent going negative
+    const targetUserSnap = await db.doc(`users/${targetUid}`).get();
+    const meUserSnap = await db.doc(`users/${meUid}`).get();
+
+    const targetFollowersCount = targetUserSnap.get("followersCount") || 0;
+    const meFollowingCount = meUserSnap.get("followingCount") || 0;
+
     const batch = db.batch();
-    batch.set(db.doc(`users/${targetUid}`), inc("followersCount", -1), { merge: true });
-    batch.set(db.doc(`users/${meUid}`), inc("followingCount", -1), { merge: true });
+    // Only decrement if count is greater than 0
+    if (targetFollowersCount > 0) {
+      batch.set(db.doc(`users/${targetUid}`), inc("followersCount", -1), {
+        merge: true,
+      });
+    }
+    if (meFollowingCount > 0) {
+      batch.set(db.doc(`users/${meUid}`), inc("followingCount", -1), {
+        merge: true,
+      });
+    }
     await batch.commit();
   }
 );
@@ -193,14 +224,21 @@ exports.onCommentCreate = onDocumentCreated(
       preview: c.text ? String(c.text).slice(0, 140) : "",
     });
 
-    await db.doc(`posts/${postId}`).set(inc("commentCount", +1), { merge: true });
+    await db
+      .doc(`posts/${postId}`)
+      .set(inc("commentCount", +1), { merge: true });
 
-    await pushToUser(ownerId, "New comment", `${actor.name} commented on your post`, {
-      type: "comment",
-      postId,
-      actorId,
-      commentId,
-    });
+    await pushToUser(
+      ownerId,
+      "New comment",
+      `${actor.name} commented on your post`,
+      {
+        type: "comment",
+        postId,
+        actorId,
+        commentId,
+      }
+    );
   }
 );
 
@@ -208,7 +246,9 @@ exports.onCommentDelete = onDocumentDeleted(
   "posts/{postId}/comments/{commentId}",
   async (event) => {
     const { postId } = event.params;
-    await db.doc(`posts/${postId}`).set(inc("commentCount", -1), { merge: true });
+    await db
+      .doc(`posts/${postId}`)
+      .set(inc("commentCount", -1), { merge: true });
   }
 );
 
