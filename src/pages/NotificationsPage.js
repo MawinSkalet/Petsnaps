@@ -1,68 +1,64 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
-import { db } from "../firebase";
-import { collection, onSnapshot, orderBy, query, updateDoc } from "firebase/firestore";
+import { listenNotifications, markNotifRead, markAllRead } from "../services/notificationsApi";
+import { useNavigate } from "react-router-dom";
 
 export default function NotificationsPage() {
   const { user } = useAuth();
   const [items, setItems] = useState([]);
+  const nav = useNavigate();
 
   useEffect(() => {
-    if (!user) return;
-    const q = query(
-      collection(db, "notifications", user.uid, "items"),
-      orderBy("createdAt", "desc")
-    );
-    const unsub = onSnapshot(q, (snap) => {
-      setItems(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
-    });
-    return unsub;
-  }, [user]);
-
-  async function markRead(id) {
-    await updateDoc(
-      collection(db, "notifications", user.uid, "items").doc
-        ? collection(db, "notifications", user.uid, "items").doc(id)
-        : null,
-      { read: true }
-    ).catch(() => {});
-  }
+    if (!user?.uid) return;
+    return listenNotifications(user.uid, setItems);
+  }, [user?.uid]);
 
   return (
-    <div className="min-h-[calc(100vh-80px)] bg-[#FFE7CC]">
-      <div className="max-w-2xl mx-auto p-6">
-        <h2 className="text-2xl font-bold text-[#8B6F47] mb-4">Notifications</h2>
-        <div className="space-y-3">
-          {items.length === 0 && (
-            <div className="text-[#8B6F47]/70">No notifications yet.</div>
-          )}
-          {items.map((n) => (
-            <div
-              key={n.id}
-              className={
-                "bg-white/90 rounded-xl p-3 border " +
-                (n.read ? "border-transparent" : "border-[#E2B887]/60")
-              }
-              onClick={() => markRead(n.id)}
-            >
-              {n.type === "follow" ? (
-                <div className="flex items-center gap-3">
-                  <img
-                    src={n.fromPhoto || "https://i.pravatar.cc/40?img=11"}
-                    alt=""
-                    className="w-8 h-8 rounded-full object-cover"
-                  />
-                  <div className="text-[#8B6F47]">
-                    <b>{n.fromName || "Someone"}</b> started following you.
-                  </div>
+    <div className="max-w-3xl mx-auto p-4">
+      <div className="flex justify-between mb-3">
+        <h2 className="text-xl font-semibold">Notifications</h2>
+        <button
+          className="text-sm text-blue-600"
+          onClick={() => markAllRead(user.uid, items)}
+        >Mark all read</button>
+      </div>
+
+      {items.length === 0 && <p className="text-gray-500">No notifications yet.</p>}
+
+      <ul className="space-y-2">
+        {items.map(n => (
+          <li
+            key={n.id}
+            className={`p-3 rounded border ${n.isRead ? "bg-white" : "bg-yellow-50"}`}
+          >
+            <div className="flex gap-3 items-center">
+              {n.actor?.avatar && <img src={n.actor.avatar} alt="" className="w-8 h-8 rounded-full" />}
+              <div className="flex-1">
+                <div className="text-sm">
+                  <b>{n.actor?.name || "Someone"}</b> — {n.message}
                 </div>
-              ) : (
-                <div className="text-[#8B6F47]">Notification</div>
+                <div className="text-xs text-gray-500">{n.type}</div>
+              </div>
+              {!n.isRead && (
+                <button
+                  className="text-xs text-blue-600"
+                  onClick={() => markNotifRead(user.uid, n.id)}
+                >
+                  mark read
+                </button>
+              )}
+              {n.url && (
+                <button
+                  className="text-xs text-green-700"
+                  onClick={() => nav(n.url)}
+                >
+                  open
+                </button>
               )}
             </div>
-          ))}
-        </div>
-      </div>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

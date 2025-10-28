@@ -1,8 +1,17 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
-import { getStorage } from "firebase/storage";
+import { 
+  getAuth 
+} from "firebase/auth";
+import { 
+  initializeFirestore, 
+  persistentLocalCache, 
+  persistentMultipleTabManager 
+} from "firebase/firestore";
+import { 
+  getStorage 
+} from "firebase/storage";
 
+// --- Firebase Config ---
 const firebaseConfig = {
   apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
   authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN,
@@ -12,8 +21,18 @@ const firebaseConfig = {
   appId: process.env.REACT_APP_FIREBASE_APP_ID,
 };
 
+// --- Initialize app ---
 const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 
+// --- Auth ---
 export const auth = getAuth(app);
-export const db = getFirestore(app);
+
+// --- Firestore (with local caching + multi-tab sync) ---
+export const db = initializeFirestore(app, {
+  localCache: persistentLocalCache({
+    tabManager: persistentMultipleTabManager(),
+  }),
+});
+
+// --- Storage ---
 export const storage = getStorage(app);
