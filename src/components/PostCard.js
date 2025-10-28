@@ -3,6 +3,7 @@ import { Heart, MessageCircle, Trash2 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { updatePostLikes, deletePost } from "../services/firebaseApi";
 import { useNavigate } from "react-router-dom";
+import CommentSection from "./CommentSection";
 
 function PostCard({ post, onReload }) {
   const { user } = useAuth();
@@ -10,6 +11,7 @@ function PostCard({ post, onReload }) {
   const [liked, setLiked] = useState(post.likedBy?.includes(user.uid) || false);
   const [likes, setLikes] = useState(post.likes || post.likeCount || 0);
   const [loadingLike, setLoadingLike] = useState(false);
+  const [showComments, setShowComments] = useState(false);
 
   const handleLike = async () => {
     if (loadingLike) return;
@@ -96,7 +98,10 @@ function PostCard({ post, onReload }) {
             <Heart className={`w-7 h-7 ${liked ? "fill-current" : ""}`} />
             <span className="font-semibold">{likes}</span>
           </button>
-          <button className="flex items-center space-x-2 text-[#8B6F47] hover:text-[#E2B887]">
+          <button
+            onClick={() => setShowComments(!showComments)}
+            className="flex items-center space-x-2 text-[#8B6F47] hover:text-[#E2B887]"
+          >
             <MessageCircle className="w-7 h-7" />
           </button>
         </div>
@@ -111,6 +116,9 @@ function PostCard({ post, onReload }) {
             {post.text}
           </p>
         )}
+
+        {/* Comment Section */}
+        {showComments && <CommentSection postId={post.id} />}
       </div>
     </div>
   );
