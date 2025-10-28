@@ -16,12 +16,22 @@ function PostCard({ post, onReload }) {
   const handleLike = async () => {
     if (loadingLike) return;
     setLoadingLike(true);
+
+    // Store current state before changing
+    const wasLiked = liked;
+
+    // Optimistic update (update UI immediately)
+    setLiked(!wasLiked);
+    setLikes((prev) => (wasLiked ? prev - 1 : prev + 1));
+
     try {
-      await updatePostLikes(post.id, user.uid, liked);
-      setLikes((prev) => (liked ? prev - 1 : prev + 1));
-      setLiked(!liked);
+      // Send to Firestore with the OLD state
+      await updatePostLikes(post.id, user.uid, wasLiked);
     } catch (error) {
       console.error("Error liking post:", error);
+      // Revert on error
+      setLiked(wasLiked);
+      setLikes((prev) => (wasLiked ? prev + 1 : prev - 1));
     } finally {
       setLoadingLike(false);
     }
