@@ -12,7 +12,7 @@ const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true); // gates the app until we know auth
+  const [loading, setLoading] = useState(true); 
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => {

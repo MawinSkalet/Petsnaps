@@ -72,10 +72,10 @@ function AuthScreen() {
       } else {
         // Sign In existing user
         await signInWithEmailAndPassword(auth, email, password);
-        console.log("✅ Logged in!");
+        console.log("Logged in!");
       }
     } catch (err) {
-      console.error("🔥 Firebase Auth Error:", err);
+      console.error("Firebase Auth Error:", err);
       setError(err.message);
     } finally {
       setAuthLoading(false);

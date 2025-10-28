@@ -62,12 +62,10 @@ export default function HopeHubPage() {
         </div>
       </div>
 
-      {/* Page body (we’ll add report form + feed later) */}
       <div className="max-w-5xl mx-auto px-4 py-6">
-        {/* Placeholder actions for next step */}
         <div className="flex items-center gap-3 mb-4">
           <button
-            onClick={() => {/* later: navigate to /report/create */}}
+            onClick={() => {}}
             className="px-4 py-2 rounded-full bg-[#E2B887] text-white hover:brightness-95"
           >
             + Create Report
