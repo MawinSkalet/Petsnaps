@@ -24,7 +24,7 @@ export const DataProvider = ({ children }) => {
   const { user } = useAuth();
   const [posts, setPosts] = useState([]);
   const [allUsers, setAllUsers] = useState([]);
-  const [userProfiles, setUserProfiles] = useState({}); // Cache for user profiles
+  const [userProfiles, setUserProfiles] = useState({}); 
   const [friendRequests, setFriendRequests] = useState([]);
   const [dataLoading, setDataLoading] = useState(true);
 

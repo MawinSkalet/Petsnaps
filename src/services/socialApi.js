@@ -11,13 +11,11 @@ import {
   onSnapshot,
 } from "firebase/firestore";
 
-/** FOLLOW (writes only to follows/*; Cloud Function creates the notification) */
 export async function followUser({ meUid, meProfile, targetUid, targetProfile }) {
   if (!meUid || !targetUid || meUid === targetUid) return;
 
   const batch = writeBatch(db);
 
-  // A) target's followers: follows/<targetUid>/followers/<meUid>
   batch.set(
     doc(db, "follows", targetUid, "followers", meUid),
     {
@@ -29,7 +27,6 @@ export async function followUser({ meUid, meProfile, targetUid, targetProfile })
     { merge: true }
   );
 
-  // B) my following: follows/<meUid>/following/<targetUid>
   batch.set(
     doc(db, "follows", meUid, "following", targetUid),
     {
@@ -43,8 +40,6 @@ export async function followUser({ meUid, meProfile, targetUid, targetProfile })
 
   await batch.commit();
 
-  // ⛔️ Do NOT write notifications here. Cloud Function onFollowCreate will add:
-  // notifications/<targetUid>/items/follow:<meUid>
 }
 
 /** UNFOLLOW */

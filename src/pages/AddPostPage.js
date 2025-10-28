@@ -7,7 +7,7 @@ import { useNavigate } from "react-router-dom";
 
 export default function AddPostPage() {
   const { user } = useAuth();
-  const navigate = useNavigate();
+  const nav = useNavigate();
 
   const [profile, setProfile] = useState(null);
   const [text, setText] = useState("");
@@ -16,36 +16,49 @@ export default function AddPostPage() {
   const [posting, setPosting] = useState(false);
   const [err, setErr] = useState("");
 
-  // Load profile to show author name/photo in post
   useEffect(() => {
     if (!user) return;
     (async () => {
       const snap = await getDoc(doc(db, "users", user.uid));
-      setProfile(snap.exists() ? snap.data() : { displayName: user.displayName, photoURL: user.photoURL });
+      setProfile(
+        snap.exists()
+          ? snap.data()
+          : { displayName: user.displayName || "", photoURL: user.photoURL || "" }
+      );
     })();
   }, [user]);
 
   function onPick(e) {
-    const list = Array.from(e.target.files || []).slice(0, 10);
-    setFiles(list);
-    setPreviews(list.map((f) => URL.createObjectURL(f)));
+    const selected = Array.from(e.target.files || []);
+    if (selected.length > 10) {
+      alert("You can upload up to 10 images only.");
+      e.target.value = ""; // reset input
+      return;
+    }
+    setFiles(selected);
+    setPreviews(selected.map((f) => URL.createObjectURL(f)));
   }
 
   async function onSubmit(e) {
     e.preventDefault();
-    if (!user) return setErr("Please sign in");
+    if (!user) return setErr("Please sign in first.");
+    if (!text.trim() && files.length === 0)
+      return setErr("Please add some text or images.");
     setPosting(true);
     setErr("");
 
     try {
       await createPost({
-        uid: user.uid,                                 // <<<<< ensures NOT "undefined"
-        author: { displayName: profile?.displayName, photoURL: profile?.photoURL },
+        uid: user.uid,
         text,
         files,
+        author: {
+          uid: user.uid,
+          displayName: profile?.displayName || "",
+          photoURL: profile?.photoURL || "",
+        },
       });
-      // go to profile after posting
-      navigate("/profile");
+      nav(`/u/${user.uid}`);
     } catch (e2) {
       console.error(e2);
       setErr(e2.message || "Post failed");
@@ -56,10 +69,7 @@ export default function AddPostPage() {
 
   return (
     <div className="min-h-[calc(100vh-80px)] bg-[#FFE7CC] flex justify-center px-4 py-6">
-      <form
-        onSubmit={onSubmit}
-        className="w-full max-w-xl bg-white/90 rounded-2xl shadow p-6"
-      >
+      <form onSubmit={onSubmit} className="w-full max-w-xl bg-white/90 rounded-2xl shadow p-6">
         <h2 className="text-xl font-bold text-[#8B6F47] mb-4">Create Post</h2>
 
         <textarea
@@ -87,7 +97,12 @@ export default function AddPostPage() {
         {previews.length > 0 && (
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
             {previews.map((src, i) => (
-              <img key={i} src={src} alt="" className="aspect-square object-cover rounded-xl border" />
+              <img
+                key={i}
+                src={src}
+                alt={`preview-${i}`}
+                className="aspect-square object-cover rounded-xl border"
+              />
             ))}
           </div>
         )}
@@ -109,4 +124,3 @@ export default function AddPostPage() {
     </div>
   );
 }
-

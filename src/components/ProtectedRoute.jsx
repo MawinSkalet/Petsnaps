@@ -7,7 +7,7 @@ export default function ProtectedRoute({ children }) {
     const location = useLocation();
 
     if (loading) {
-        return null; // or a loading spinner
+        return null; 
     }
     if (!user) {
         return <Navigate to="/" replace state={{ from: location}} />;

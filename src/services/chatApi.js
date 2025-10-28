@@ -1,16 +1,13 @@
-// src/services/chatApi.js
 import {
   doc, setDoc, getDoc, serverTimestamp, addDoc,
   collection, query, where, onSnapshot, orderBy, limit, updateDoc
 } from "firebase/firestore";
 import { db } from "../firebase";
 
-// Stable 1:1 chat id (sorted uids)
 export function directChatId(a, b) {
   return [a, b].sort().join("_");
 }
 
-/** Ensure chat doc exists with participants[] and return {id, ref} */
 export async function ensureDirectChat(meUid, otherUid) {
   const id = directChatId(meUid, otherUid);
   const ref = doc(db, "chats", id);

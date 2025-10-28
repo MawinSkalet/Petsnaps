@@ -10,9 +10,9 @@ export default function FirebaseSmokeTest() {
           ok: true,
           at: serverTimestamp(),
         });
-        console.log("✅ Firestore write succeeded:", ref.id);
+        console.log("Firestore write succeeded:", ref.id);
       } catch (e) {
-        console.error("🔥 Firestore test failed:", e?.code, e?.message);
+        console.error("Firestore test failed:", e?.code, e?.message);
       }
     })();
   }, []);

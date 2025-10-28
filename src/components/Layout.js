@@ -21,7 +21,7 @@ function NavButton({ icon: Icon, to, isCenter }) {
   );
 }
 
-function Layout({ children }) {
+export default function Layout({ children }) {
   return (
     <div className="min-h-screen bg-[#FFE7CC] flex flex-col">
       {/* Top Header */}
@@ -29,34 +29,33 @@ function Layout({ children }) {
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <div className="w-10 h-10 bg-gradient-to-br from-[#E2B887] to-[#B5EAD7] rounded-full flex items-center justify-center overflow-hidden">
-              <img
-                src="/Pawsnap.png"
-                className="w-full h-full object-contain scale-150"
-              />
+              <img src="/Pawsnap.png" className="w-full h-full object-contain scale-150" alt="" />
             </div>
             <span className="text-2xl font-bold text-[#8B6F47]">PawSnap</span>
           </div>
 
-          <div className="flex items-center">
-            <NavLink to="/hope" className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/70 border-2 border-[#E2B887]/40 text-[#8B6F47] hover:bg-white transition">
+          <NavLink
+            to="/hope"
+            className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/70 border-2 border-[#E2B887]/40 text-[#8B6F47] hover:bg-white transition"
+          >
             <Flag className="w-5 h-5" />
             <span className="font-medium">Hope Hub</span>
           </NavLink>
-
-          </div>
         </div>
       </header>
 
-      {/* Main Content */}
-      <div className="flex-1 flex">
-        <div className="flex-1 overflow-y-auto">
-          <div className="max-w-4xl mx-auto p-6">{children}</div>
-        </div>
-      </div>
+      {/* Main Content (add bottom padding = nav height) */}
+      <main className="flex-1 overflow-y-auto">
+        <div className="max-w-4xl mx-auto p-6 pb-24">{children}</div>
+      </main>
 
-      {/* Bottom Navigation: Home / Profile / Message  (+)  Search / Notifications / Settings */}
-      <nav className="bg-white border-t border-[#E2B887]/30 px-6 py-4">
-        <div className="max-w-7xl mx-auto flex items-center justify-around">
+      {/* Fixed Bottom Navigation */}
+      <nav
+        aria-label="Primary"
+        className="fixed bottom-0 inset-x-0 z-50 bg-white/95 backdrop-blur border-t border-[#E2B887]/30 px-6"
+        style={{ paddingBottom: "max(env(safe-area-inset-bottom), 0px)" }} // iOS safe area
+      >
+        <div className="max-w-7xl mx-auto h-16 flex items-center justify-around">
           <NavButton icon={Home} to="/home" />
           <NavButton icon={User} to="/profile" />
           <NavButton icon={MessageCircle} to="/chat" />
@@ -71,5 +70,3 @@ function Layout({ children }) {
     </div>
   );
 }
-
-export default Layout;

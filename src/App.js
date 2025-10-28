@@ -12,8 +12,8 @@ import AddPostPage from "./pages/AddPostPage";
 import ChatPage from "./pages/ChatPage";
 import SettingsPage from "./pages/SettingsPage";
 import ProfilePage from "./pages/ProfilePage";
+import PostPage from "./pages/PostPage";
 
-// NEW pages you added for social:
 import SearchPage from "./pages/SearchPage";
 import NotificationsPage from "./pages/NotificationsPage";
 import UserProfilePage from "./pages/UserProfilePage";
@@ -49,6 +49,8 @@ function App() {
 
                       <Route path="/settings" element={<SettingsPage />} />
                       <Route path="/hope" element={<HopeHubPage />} />
+                      <Route path="/post/:postId" element={<PostPage />} />
+
                     </Routes>
                   </Layout>
                 </DataProvider>
