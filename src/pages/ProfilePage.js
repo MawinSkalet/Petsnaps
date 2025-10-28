@@ -55,7 +55,13 @@ export default function ProfilePage() {
       orderBy("createdAt", "desc")
     );
     const postsUnsub = onSnapshot(q, (snap) => {
+      console.log("ProfilePage posts count:", snap.size);
+      console.log("ProfilePage posts data:", snap.docs.map((d) => ({ id: d.id, ...d.data() })));
       setPosts(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+    }, (error) => {
+      console.error("ProfilePage posts error:", error);
+      console.error("Error code:", error.code);
+      console.error("Error message:", error.message);
     });
 
     // Realtime follow counts
