@@ -13,6 +13,7 @@ import {
   getDoc,
 } from "firebase/firestore";
 import { useAuth } from "../context/AuthContext";
+import { listenLikes, toggleLike } from "../services/likesApi";
 
 // tiny icon buttons
 function IconBtn({ children, title, onClick, className = "" }) {
@@ -34,7 +35,7 @@ export default function PostModal({ postId, onClose }) {
 
   const [post, setPost] = useState(null);
   const [comments, setComments] = useState([]);
-  const [likesCount, setLikesCount] = useState(0);
+  const [likes, setLikes] = useState({ count: 0, liked: false });
   const [i, setI] = useState(0); // current image index
   const [text, setText] = useState("");
 
@@ -69,12 +70,9 @@ export default function PostModal({ postId, onClose }) {
   }, [postId]);
 
   useEffect(() => {
-    if (!postId) return;
-    const unsub = onSnapshot(collection(db, "posts", postId, "likes"), (snap) => {
-      setLikesCount(snap.size);
-    });
-    return unsub;
-  }, [postId]);
+    if (!postId || !user) return;
+    return listenLikes(postId, user.uid, setLikes);
+  }, [postId, user]);
 
   // close on ESC
   useEffect(() => {
@@ -106,22 +104,10 @@ export default function PostModal({ postId, onClose }) {
     setText("");
   }
 
-  async function toggleLike() {
+  const handleToggleLike = () => {
     if (!user) return;
-    const likeRef = doc(db, "posts", postId, "likes", user.uid);
-    const snap = await getDoc(likeRef);
-    if (snap.exists()) {
-      // unlike
-      await deleteDoc(likeRef);
-    } else {
-      // like
-      await setDoc(likeRef, {
-        uid: user.uid,
-        displayName: user.displayName || "",
-        createdAt: serverTimestamp(),
-      });
-    }
-  }
+    toggleLike(postId, user.uid, likes.liked);
+  };
 
   async function handleDelete() {
     if (!isOwner) return;
@@ -229,8 +215,12 @@ export default function PostModal({ postId, onClose }) {
 
           {/* counters + actions */}
           <div className="px-4 pb-2 flex items-center gap-2">
-            <IconBtn title="Like / Unlike" onClick={toggleLike}>
-              ❤️ <span className="ml-2">{likesCount}</span>
+            <IconBtn
+              title="Like / Unlike"
+              onClick={handleToggleLike}
+              className={likes.liked ? "!bg-red-100 !text-red-500" : ""}
+            >
+              ❤️ <span className="ml-2">{likes.count}</span>
             </IconBtn>
             {isOwner && (
               <IconBtn

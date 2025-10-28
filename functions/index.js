@@ -90,7 +90,7 @@ exports.onFollowerAdded = onDocumentCreated(
       actor: { id: meUid, name: actor.name, avatar: actor.avatar },
       entity: { type: "user", id: meUid },
       message: `${actor.name} started following you`,
-      url: `/user/${meUid}`,
+      url: `/u/${meUid}`,
     });
 
     // 2) Counters (target: followersCount, me: followingCount)
@@ -111,6 +111,7 @@ exports.onFollowerAdded = onDocumentCreated(
       {
         type: "follow",
         actorId: meUid,
+        url: `/u/${meUid}`,
       }
     );
   }

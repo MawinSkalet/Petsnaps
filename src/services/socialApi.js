@@ -78,3 +78,22 @@ export async function getFollowCounts(uid) {
 
   return { followingCount, followersCount };
 }
+
+export function listenFollowCounts(uid, cb) {
+  if (!uid) return;
+
+  const unsub1 = onSnapshot(
+    collection(db, "follows", uid, "following"),
+    (snap) => cb({ followingCount: snap.size })
+  );
+
+  const unsub2 = onSnapshot(
+    collection(db, "follows",uid, "followers"),
+    (snap) => cb({ followersCount: snap.size })
+  );
+
+  return () => {
+    unsub1();
+    unsub2();
+  };
+}

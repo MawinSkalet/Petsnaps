@@ -1,6 +1,13 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { db } from "../firebase";
-import { onSnapshot, doc, query, collection, where, orderBy } from "firebase/firestore";
+import {
+  onSnapshot,
+  doc,
+  query,
+  collection,
+  where,
+  orderBy,
+} from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
 import { useUserCounters } from "../hooks/useUserCounters";
 import FollowButton from "./FollowButton";
@@ -23,8 +30,16 @@ export default function ProfileView({ uid }) {
   // realtime profile
   useEffect(() => {
     if (!uid) return;
+    console.log("ProfileView: Loading profile for uid:", uid);
     const unsub = onSnapshot(doc(db, "users", uid), (snap) => {
-      if (snap.exists()) setProfile(snap.data());
+      console.log("ProfileView: Profile snapshot exists:", snap.exists());
+      if (snap.exists()) {
+        console.log("ProfileView: Profile data:", snap.data());
+        setProfile(snap.data());
+      } else {
+        console.log("ProfileView: No profile found for uid:", uid);
+        setProfile({ displayName: "Unknown User", photoURL: null });
+      }
     });
     return unsub;
   }, [uid]);
@@ -32,6 +47,7 @@ export default function ProfileView({ uid }) {
   // realtime posts
   useEffect(() => {
     if (!uid) return;
+    console.log("ProfileView: Loading posts for uid:", uid);
     setLoading(true);
     const q = query(
       collection(db, "posts"),
@@ -39,6 +55,7 @@ export default function ProfileView({ uid }) {
       orderBy("createdAt", "desc")
     );
     const unsub = onSnapshot(q, (snap) => {
+      console.log("ProfileView: Posts count:", snap.size);
       setPosts(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
       setLoading(false);
     });
@@ -68,8 +85,16 @@ export default function ProfileView({ uid }) {
             ) : (
               <>
                 <FollowButton
-                  me={{ uid: me?.uid, displayName: me?.displayName, photoURL: me?.photoURL }}
-                  target={{ uid, displayName: profile?.displayName, photoURL: profile?.photoURL }}
+                  me={{
+                    uid: me?.uid,
+                    displayName: me?.displayName,
+                    photoURL: me?.photoURL,
+                  }}
+                  target={{
+                    uid,
+                    displayName: profile?.displayName,
+                    photoURL: profile?.photoURL,
+                  }}
                 />
                 <button
                   onClick={() => nav("/chat")}
@@ -82,12 +107,20 @@ export default function ProfileView({ uid }) {
           </div>
 
           <div className="mt-1 flex gap-6 text-[#8B6F47]">
-            <span><b>{posts.length}</b> posts</span>
-            <span><b>{followersCount}</b> followers</span>
-            <span><b>{followingCount}</b> following</span>
+            <span>
+              <b>{posts.length}</b> posts
+            </span>
+            <span>
+              <b>{followersCount}</b> followers
+            </span>
+            <span>
+              <b>{followingCount}</b> following
+            </span>
           </div>
 
-          {profile?.bio && <p className="mt-2 text-[#8B6F47]/80">{profile.bio}</p>}
+          {profile?.bio && (
+            <p className="mt-2 text-[#8B6F47]/80">{profile.bio}</p>
+          )}
         </div>
       </div>
 
@@ -95,10 +128,15 @@ export default function ProfileView({ uid }) {
       <div className="mt-6 grid grid-cols-2 md:grid-cols-3 gap-4">
         {loading ? (
           [...Array(6)].map((_, i) => (
-            <div key={i} className="aspect-square rounded-xl bg-[#f2e7d9] animate-pulse" />
+            <div
+              key={i}
+              className="aspect-square rounded-xl bg-[#f2e7d9] animate-pulse"
+            />
           ))
         ) : posts.length === 0 ? (
-          <div className="col-span-full text-center text-[#8B6F47]/70">No posts yet.</div>
+          <div className="col-span-full text-center text-[#8B6F47]/70">
+            No posts yet.
+          </div>
         ) : (
           posts.map((p) => (
             <button
@@ -107,7 +145,11 @@ export default function ProfileView({ uid }) {
               className="relative block bg-white/90 rounded-xl shadow overflow-hidden text-left"
             >
               {Array.isArray(p.images) && p.images[0] ? (
-                <img src={p.images[0]} alt="" className="w-full aspect-square object-cover" />
+                <img
+                  src={p.images[0]}
+                  alt=""
+                  className="w-full aspect-square object-cover"
+                />
               ) : (
                 <div className="w-full aspect-square bg-[#F5F5F5]" />
               )}
@@ -122,7 +164,10 @@ export default function ProfileView({ uid }) {
       </div>
 
       {selectedPost && (
-        <PostModal postId={selectedPost} onClose={() => setSelectedPost(null)} />
+        <PostModal
+          postId={selectedPost}
+          onClose={() => setSelectedPost(null)}
+        />
       )}
     </div>
   );

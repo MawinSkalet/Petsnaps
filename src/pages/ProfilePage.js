@@ -5,14 +5,13 @@ import { Trash2 } from "lucide-react";
 import {
   collection,
   doc,
-  getDoc,
-  getDocs,
-  orderBy,
+  onSnapshot,
   query,
   where,
+  orderBy,
 } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
-import { getFollowCounts } from "../services/socialApi";
+import { listenFollowCounts } from "../services/socialApi";
 import { deletePost } from "../services/firebaseApi";
 
 export default function ProfilePage() {
@@ -21,7 +20,10 @@ export default function ProfilePage() {
 
   const [profile, setProfile] = useState(null);
   const [posts, setPosts] = useState([]);
-  const [counts, setCounts] = useState({ followers: 0, following: 0 });
+  const [counts, setCounts] = useState({
+    followersCount: 0,
+    followingCount: 0,
+  });
 
   const handleDelete = async (postId) => {
     if (window.confirm("Are you sure you want to delete this post?")) {
@@ -36,43 +38,36 @@ export default function ProfilePage() {
 
   useEffect(() => {
     if (!user) return;
-    (async () => {
-      const snap = await getDoc(doc(db, "users", user.uid));
-      setProfile(
-        snap.exists()
-          ? snap.data()
-          : { displayName: user.displayName, photoURL: user.photoURL }
-      );
 
-      // needs index: posts where uid== and orderBy createdAt desc
-      try {
-        const q1 = query(
-          collection(db, "posts"),
-          where("uid", "==", user.uid),
-          orderBy("createdAt", "desc")
-        );
-        const ds = await getDocs(q1);
-        setPosts(ds.docs.map((d) => ({ id: d.id, ...d.data() })));
-      } catch (_) {
-        // fallback without orderBy if index not created yet
-        const q2 = query(collection(db, "posts"), where("uid", "==", user.uid));
-        const ds = await getDocs(q2);
-        setPosts(
-          ds.docs
-            .map((d) => ({ id: d.id, ...d.data() }))
-            .sort(
-              (a, b) =>
-                (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0)
-            )
-        );
+    // Realtime profile
+    const profileUnsub = onSnapshot(doc(db, "users", user.uid), (snap) => {
+      if (snap.exists()) {
+        setProfile(snap.data());
+      } else {
+        setProfile({ displayName: user.displayName, photoURL: user.photoURL });
       }
+    });
 
-      // counts
-      const { followersCount, followingCount } = await getFollowCounts(
-        user.uid
-      );
-      setCounts({ followers: followersCount, following: followingCount });
-    })();
+    // Realtime posts
+    const q = query(
+      collection(db, "posts"),
+      where("uid", "==", user.uid),
+      orderBy("createdAt", "desc")
+    );
+    const postsUnsub = onSnapshot(q, (snap) => {
+      setPosts(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+    });
+
+    // Realtime follow counts
+    const countsUnsub = listenFollowCounts(user.uid, (newCounts) => {
+      setCounts((prev) => ({ ...prev, ...newCounts }));
+    });
+
+    return () => {
+      profileUnsub();
+      postsUnsub();
+      countsUnsub();
+    };
   }, [user]);
 
   const name = useMemo(() => profile?.displayName || "", [profile]);
@@ -99,12 +94,6 @@ export default function ProfilePage() {
                   Create post
                 </button>
                 <button
-                  onClick={() => navigate("/chat")}
-                  className="px-3 py-1 text-sm rounded-full border border-[#E2B887]/60 text-[#8B6F47]"
-                >
-                  Message
-                </button>
-                <button
                   onClick={() => navigate("/settings")}
                   className="px-3 py-1 text-sm rounded-full border border-[#E2B887]/60 text-[#8B6F47]"
                 >
@@ -117,16 +106,19 @@ export default function ProfilePage() {
                 <b>{posts.length}</b> posts
               </span>
               <span>
-                <b>{counts.followers}</b> followers
+                <b>{counts.followersCount}</b> followers
               </span>
               <span>
-                <b>{counts.following}</b> following
+                <b>{counts.followingCount}</b> following
               </span>
             </div>
+            {profile?.bio && (
+              <p className="mt-2 text-[#8B6F47]/80">{profile.bio}</p>
+            )}
           </div>
         </div>
 
-        <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+        <div className="mt-6 grid grid-cols-2 md:grid-cols-3 gap-4">
           {posts.length === 0 ? (
             <div className="col-span-full text-center text-[#8B6F47]/70">
               No posts yet.
@@ -135,7 +127,7 @@ export default function ProfilePage() {
             posts.map((p) => (
               <div
                 key={p.id}
-                className="relative bg-white/90 rounded-xl shadow overflow-hidden"
+                className="relative bg-white/90 rounded-xl shadow overflow-hidden group"
               >
                 {Array.isArray(p.images) && p.images[0] ? (
                   <img
@@ -147,16 +139,17 @@ export default function ProfilePage() {
                   <div className="w-full aspect-square bg-[#F5F5F5]" />
                 )}
                 {p.text && (
-                  <div className="px-3 py-2 text-sm text-[#8B6F47] line-clamp-2">
+                  <div className="absolute bottom-0 left-0 right-0 bg-black/40 text-white text-xs px-2 py-1 pointer-events-none line-clamp-1">
                     {p.text}
                   </div>
                 )}
-                {/* Delete Button */}
+                {/* Delete Button - shows on hover */}
                 <button
                   onClick={() => handleDelete(p.id)}
-                  className="absolute bottom-0.5 right-2 p-2 text-red-500 hover:bg-red-50 rounded-xl"
+                  className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-lg hover:bg-red-600"
+                  title="Delete post"
                 >
-                  <Trash2 className="w-5 h-5" />
+                  <Trash2 className="w-4 h-4" />
                 </button>
               </div>
             ))

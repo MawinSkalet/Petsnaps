@@ -1,40 +1,27 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Heart, MessageCircle, Trash2 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
-import { updatePostLikes, deletePost } from "../services/firebaseApi";
+import { deletePost } from "../services/firebaseApi";
 import { useNavigate } from "react-router-dom";
 import CommentSection from "./CommentSection";
+import { listenLikes, toggleLike } from "../services/likesApi";
 
 function PostCard({ post, onReload }) {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [liked, setLiked] = useState(post.likedBy?.includes(user.uid) || false);
-  const [likes, setLikes] = useState(post.likes || post.likeCount || 0);
-  const [loadingLike, setLoadingLike] = useState(false);
+
+  const [likes, setLikes] = useState({ count: 0, liked: false });
   const [showComments, setShowComments] = useState(false);
 
-  const handleLike = async () => {
-    if (loadingLike) return;
-    setLoadingLike(true);
+  useEffect(() => {
+    if (!post.id || !user?.uid) return;
+    const unsub = listenLikes(post.id, user.uid, (data) => setLikes(data));
+    return () => unsub();
+  }, [post.id, user?.uid]);
 
-    // Store current state before changing
-    const wasLiked = liked;
-
-    // Optimistic update (update UI immediately)
-    setLiked(!wasLiked);
-    setLikes((prev) => (wasLiked ? prev - 1 : prev + 1));
-
-    try {
-      // Send to Firestore with the OLD state
-      await updatePostLikes(post.id, user.uid, wasLiked);
-    } catch (error) {
-      console.error("Error liking post:", error);
-      // Revert on error
-      setLiked(wasLiked);
-      setLikes((prev) => (wasLiked ? prev + 1 : prev - 1));
-    } finally {
-      setLoadingLike(false);
-    }
+  const handleLike = () => {
+    if (!user) return;
+    toggleLike(post.id, user.uid, likes.liked);
   };
 
   const handleDelete = async () => {
@@ -102,11 +89,11 @@ function PostCard({ post, onReload }) {
           <button
             onClick={handleLike}
             className={`flex items-center space-x-2 transition ${
-              liked ? "text-red-500" : "text-[#8B6F47] hover:text-red-500"
+              likes.liked ? "text-red-500" : "text-[#8B6F47] hover:text-red-500"
             }`}
           >
-            <Heart className={`w-7 h-7 ${liked ? "fill-current" : ""}`} />
-            <span className="font-semibold">{likes}</span>
+            <Heart className={`w-7 h-7 ${likes.liked ? "fill-current" : ""}`} />
+            <span className="font-semibold">{likes.count}</span>
           </button>
           <button
             onClick={() => setShowComments(!showComments)}

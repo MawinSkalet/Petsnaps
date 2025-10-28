@@ -17,6 +17,7 @@ import ProfilePage from "./pages/ProfilePage";
 import SearchPage from "./pages/SearchPage";
 import NotificationsPage from "./pages/NotificationsPage";
 import UserProfilePage from "./pages/UserProfilePage";
+import PostPage from "./pages/PostPage";
 
 import HopeHubPage from "./pages/HopeHubPage";
 
@@ -47,16 +48,20 @@ function AppContent() {
                     element={<HomePage ref={homePageRef} />}
                   />
                   <Route path="/add" element={<AddPostPage />} />
+                  <Route path="/add-post" element={<AddPostPage />} />
                   <Route path="/chat" element={<ChatPage />} />
+                  <Route path="/chat/:chatId" element={<ChatPage />} />
                   <Route path="/profile" element={<ProfilePage />} />
 
                   {/* NEW */}
                   <Route path="/u/:uid" element={<UserProfilePage />} />
+                  <Route path="/user/:uid" element={<UserProfilePage />} />
                   <Route path="/search" element={<SearchPage />} />
                   <Route
                     path="/notifications"
                     element={<NotificationsPage />}
                   />
+                  <Route path="/post/:postId" element={<PostPage />} />
 
                   <Route path="/settings" element={<SettingsPage />} />
                   <Route path="/hope" element={<HopeHubPage />} />
