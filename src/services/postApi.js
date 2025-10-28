@@ -37,6 +37,7 @@ export async function createPost({ uid, author, text, files }) {
     commentCount: 0,
     createdAt: serverTimestamp(), // IMPORTANT for ordering
     author: {
+      uid,
       displayName: author?.displayName || "",
       photoURL: author?.photoURL || "",
     },
