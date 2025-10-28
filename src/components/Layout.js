@@ -75,7 +75,7 @@ function Layout({ children, onHomeClick }) {
                 className="w-full h-full object-contain scale-150"
               />
             </div>
-            <span className="text-2xl font-bold text-[#8B6F47]">PawSnap</span>
+            <span className="text-2xl font-bold text-[#8B6F47]">PetSnap</span>
           </div>
 
           <div className="flex items-center">

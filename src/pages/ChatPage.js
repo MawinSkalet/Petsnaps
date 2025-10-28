@@ -209,7 +209,7 @@ export default function ChatPage() {
 
   // render
   return (
-    <div className="flex h-[calc(100vh-80px)] bg-white rounded-2xl shadow overflow-hidden">
+    <div className="flex h-[calc(100vh-210px)] bg-white rounded-2xl shadow overflow-hidden">
       {/* Left list */}
       <div className="w-1/3 border-r border-[#E2B887]/30 p-4 overflow-y-auto">
         <h2 className="text-lg font-bold text-[#8B6F47] mb-3">Messages</h2>
