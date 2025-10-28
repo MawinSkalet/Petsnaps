@@ -1,54 +1,51 @@
-import React, { useEffect, useState } from "react";
-import { followUser, unfollowUser, isFollowing } from "../services/socialApi";
+import { useEffect, useState } from "react";
+import { db } from "../firebase";
+import { doc, onSnapshot, writeBatch, serverTimestamp } from "firebase/firestore";
 
-export default function FollowButton({ me, target, className = "" }) {
-  const [loading, setLoading] = useState(false);
-  const [following, setFollowing] = useState(false);
+export default function FollowButton({ me, target }) {
+  const meUid = me?.uid;
+  const targetUid = target?.uid;
+
+  const [isFollowing, setIsFollowing] = useState(false);
 
   useEffect(() => {
-    let mounted = true;
-    (async () => {
-      if (!me?.uid || !target?.uid || me.uid === target.uid) return;
-      const ok = await isFollowing({ meUid: me.uid, targetUid: target.uid });
-      if (mounted) setFollowing(ok);
-    })();
-    return () => (mounted = false);
-  }, [me?.uid, target?.uid]);
+    if (!meUid || !targetUid || meUid === targetUid) return;
+    const ref = doc(db, "follows", meUid, "following", targetUid);
+    return onSnapshot(ref, (snap) => setIsFollowing(snap.exists()));
+  }, [meUid, targetUid]);
 
-  if (!me?.uid || !target?.uid || me.uid === target.uid) return null;
+  // hide button on my own profile or if missing data
+  if (!meUid || !targetUid || meUid === targetUid) return null;
 
-  async function toggle() {
-    setLoading(true);
-    try {
-      if (following) {
-        await unfollowUser({ meUid: me.uid, targetUid: target.uid });
-        setFollowing(false);
-      } else {
-        await followUser({
-          meUid: me.uid,
-          meProfile: { displayName: me.displayName, photoURL: me.photoURL },
-          targetUid: target.uid,
-          targetProfile: { displayName: target.displayName, photoURL: target.photoURL },
-        });
-        setFollowing(true);
-      }
-    } finally {
-      setLoading(false);
-    }
+  async function follow() {
+    const batch = writeBatch(db);
+    batch.set(
+      doc(db, "follows", targetUid, "followers", meUid),
+      { uid: meUid, displayName: me?.displayName || "", photoURL: me?.photoURL || "", createdAt: serverTimestamp() },
+      { merge: true }
+    );
+    batch.set(
+      doc(db, "follows", meUid, "following", targetUid),
+      { uid: targetUid, displayName: target?.displayName || "", photoURL: target?.photoURL || "", createdAt: serverTimestamp() },
+      { merge: true }
+    );
+    await batch.commit();
+  }
+
+  async function unfollow() {
+    const batch = writeBatch(db);
+    batch.delete(doc(db, "follows", targetUid, "followers", meUid));
+    batch.delete(doc(db, "follows", meUid, "following", targetUid));
+    await batch.commit();
   }
 
   return (
     <button
-      disabled={loading}
-      onClick={toggle}
-      className={
-        (following
-          ? "bg-[#FFE7CC] border border-[#E2B887]/60 text-[#8B6F47]"
-          : "bg-[#E2B887] text-white") +
-        " px-3 py-1.5 rounded-full text-sm " + className
-      }
+      onClick={isFollowing ? unfollow : follow}
+      className={`px-4 py-1.5 rounded-full text-sm border transition
+        ${isFollowing ? "bg-white text-[#8B6F47] border-[#E2B887]" : "bg-[#8B6F47] text-white border-[#8B6F47]"}`}
     >
-      {loading ? "…" : following ? "Following" : "Follow"}
+      {isFollowing ? "Unfollow" : "Follow"}
     </button>
   );
 }
