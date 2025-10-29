@@ -32,7 +32,7 @@ const HomePage = forwardRef((props, ref) => {
   return (
     <div className="space-y-4">
       {posts.map((p) => (
-        <PostCard key={p.id} post={p} />
+        <PostCard key={p.id} post={p} onReload={() => setRefreshKey((prev) => prev + 1)}/>
       ))}
     </div>
   );
